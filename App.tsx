@@ -1,8 +1,8 @@
 import React from 'react';
-import { MessageProvider } from './contexts/MessageContext';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import ToastContainer from './components/ToastContainer';
-import Login from './components/Login';
+import { MessageProvider } from './src/contexts/MessageContext';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import ToastContainer from './src/components/ToastContainer';
+import Login from './src/components/Login';
 import MainApp from './MainApp';
 
 // App wrapper with authentication
