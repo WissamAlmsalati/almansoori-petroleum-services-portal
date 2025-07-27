@@ -6,15 +6,21 @@ interface ClientsProps {
   clients: Client[];
   onAdd: () => void;
   onEdit: (client: Client) => void;
+  onDelete?: (clientId: string) => void;
+  isLoading?: boolean;
 }
 
-const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit }) => {
+const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit, onDelete, isLoading = false }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-slate-800">All Clients ({clients.length})</h3>
-        <button onClick={onAdd} className="bg-brand-blue-600 text-white px-4 py-2 rounded-md hover:bg-brand-blue-700 transition-colors">
-          Add New Client
+        <button 
+          onClick={onAdd} 
+          disabled={isLoading}
+          className="bg-brand-blue-600 text-white px-4 py-2 rounded-md hover:bg-brand-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Loading...' : 'Add New Client'}
         </button>
       </div>
       <div className="overflow-x-auto">
@@ -39,7 +45,24 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit }) => {
                 <td className="px-6 py-4">{primaryContact ? primaryContact.name : 'N/A'}</td>
                 <td className="px-6 py-4">{primaryContact ? primaryContact.email : 'N/A'}</td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => onEdit(client)} className="font-medium text-brand-blue-600 hover:underline">Edit</button>
+                  <div className="flex gap-2 justify-end">
+                    <button 
+                      onClick={() => onEdit(client)} 
+                      className="font-medium text-brand-blue-600 hover:underline"
+                      disabled={isLoading}
+                    >
+                      Edit
+                    </button>
+                    {onDelete && (
+                      <button 
+                        onClick={() => onDelete(client.id)} 
+                        className="font-medium text-red-600 hover:underline"
+                        disabled={isLoading}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             )})}

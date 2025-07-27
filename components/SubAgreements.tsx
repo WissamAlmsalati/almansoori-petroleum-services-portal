@@ -7,9 +7,11 @@ interface SubAgreementsProps {
   tickets: ServiceTicket[];
   onAdd: () => void;
   onEdit: (agreement: SubAgreement) => void;
+  onDelete?: (agreementId: string) => void;
+  isLoading?: boolean;
 }
 
-const SubAgreements: React.FC<SubAgreementsProps> = ({ agreements, clients, tickets, onAdd, onEdit }) => {
+const SubAgreements: React.FC<SubAgreementsProps> = ({ agreements, clients, tickets, onAdd, onEdit, onDelete, isLoading }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -46,8 +48,12 @@ const SubAgreements: React.FC<SubAgreementsProps> = ({ agreements, clients, tick
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-slate-800">All Sub-Agreements ({agreements.length})</h3>
-        <button onClick={onAdd} className="bg-brand-blue-600 text-white px-4 py-2 rounded-md hover:bg-brand-blue-700 transition-colors">
-          Add New Agreement
+        <button 
+          onClick={onAdd} 
+          disabled={isLoading}
+          className="bg-brand-blue-600 text-white px-4 py-2 rounded-md hover:bg-brand-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Loading...' : 'Add New Agreement'}
         </button>
       </div>
 
@@ -108,7 +114,24 @@ const SubAgreements: React.FC<SubAgreementsProps> = ({ agreements, clients, tick
                   {!nearExpiry && !lowBalance && <span className="text-xs font-medium mr-2 px-2.5 py-0.5 rounded bg-green-100 text-green-800">Active</span>}
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => onEdit(agreement)} className="font-medium text-brand-blue-600 hover:underline">Edit</button>
+                  <div className="flex gap-2 justify-end">
+                    <button 
+                      onClick={() => onEdit(agreement)} 
+                      className="font-medium text-brand-blue-600 hover:underline"
+                      disabled={isLoading}
+                    >
+                      Edit
+                    </button>
+                    {onDelete && (
+                      <button 
+                        onClick={() => onDelete(agreement.id)} 
+                        className="font-medium text-red-600 hover:underline"
+                        disabled={isLoading}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             )})}
