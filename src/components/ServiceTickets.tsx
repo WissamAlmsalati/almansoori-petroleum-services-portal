@@ -27,7 +27,7 @@ export const getStatusColor = (status: TicketStatus) => {
   }
 };
 
-const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd, onGenerate, onView, onEdit, onDelete, onStatusChange }) => {
+const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd, onGenerate, onView, onEdit, onDelete }) => {
   const getClientName = (clientId: string) => clients.find(c => c.id === clientId)?.name || 'Unknown Client';
 
   // State for filters
@@ -145,16 +145,9 @@ const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd
                 <td className="px-4 py-2 text-xs">${ticket.amount.toLocaleString()}</td>
                 <td className="px-4 py-2 text-center text-xs">{ticket.documents.length}</td>
                 <td className="px-4 py-2">
-                  <select
-                    value={ticket.status}
-                    onChange={(e) => onStatusChange(ticket.id, e.target.value as TicketStatus)}
-                    className={`text-xs font-medium px-2 py-1 rounded-full border-0 focus:ring-2 focus:ring-brand-blue-500 ${getStatusColor(ticket.status)}`}
-                  >
-                    <option value="In Field to Sign">In Field to Sign</option>
-                    <option value="Issue">Issue</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Invoiced">Invoiced</option>
-                  </select>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(ticket.status)}`}>
+                    {ticket.status}
+                  </span>
                 </td>
                 <td className="px-4 py-2 text-right">
                   <div className="flex space-x-2 justify-end">

@@ -70,7 +70,6 @@ const App: React.FC = () => {
     handleGenerateExcel,
     handleSaveServiceTicket,
     handleDeleteServiceTicket,
-    handleStatusChange,
     handleGenerateServiceTicket,
     handleSaveTicketIssue,
     handleDeleteTicketIssue,
@@ -153,9 +152,7 @@ const App: React.FC = () => {
     await handleDeleteTicketIssue(issue.id);
   };
 
-  const handleTicketStatusChange = async (ticketId: string, newStatus: any) => {
-    await handleStatusChange(ticketId, newStatus);
-  };
+
 
   const renderModalContent = () => {
     const allJobsAndAgreements = [...agreements, ...jobs];
@@ -248,7 +245,7 @@ const App: React.FC = () => {
           onView={handleOpenViewTicketModal} 
           onEdit={handleOpenEditTicketModal} 
           onDelete={(ticket) => handleDeleteServiceTicket(ticket.id)}
-          onStatusChange={handleTicketStatusChange}
+
         />;
       case 'User Management':
         return <UserManagement users={users} onAdd={() => setModalType('addUser')}/>;

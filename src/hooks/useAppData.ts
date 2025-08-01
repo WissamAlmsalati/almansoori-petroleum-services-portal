@@ -908,37 +908,7 @@ export const useAppData = () => {
     }
   };
 
-  const handleStatusChange = async (ticketId: string, newStatus: TicketStatus) => {
-    try {
-      setLoading(true);
-      
-      // Find the current ticket to get its data
-      const currentTicket = tickets.find(t => t.id === ticketId);
-      if (!currentTicket) {
-        showMessage('error', 'Ticket not found');
-        return;
-      }
 
-      // Update only the status
-      const updateData = {
-        status: newStatus
-      };
-
-      console.log('Updating ticket status:', { ticketId, newStatus });
-      
-      await serviceTicketService.updateServiceTicket(ticketId, updateData);
-      showMessage('success', 'Status updated successfully');
-      
-      // Refresh the tickets list
-      await loadServiceTickets();
-    } catch (error: any) {
-      console.error('Status update error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update status';
-      showMessage('error', errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGenerateServiceTicket = async (data: {
     clientId: string;
@@ -1203,7 +1173,6 @@ export const useAppData = () => {
     handleGenerateExcel,
     handleSaveServiceTicket,
     handleDeleteServiceTicket,
-    handleStatusChange,
     handleGenerateServiceTicket,
     handleSaveTicketIssue,
     handleDeleteTicketIssue,
