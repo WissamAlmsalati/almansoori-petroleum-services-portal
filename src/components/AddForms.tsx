@@ -299,6 +299,9 @@ export const AddCallOutJobForm: React.FC<AddCallOutJobFormProps> = ({ clients, o
         clientId: initialData?.clientId || '',
         jobName: initialData?.jobName || '',
         workOrderNumber: initialData?.workOrderNumber || '',
+        description: initialData?.description || '',
+        priority: initialData?.priority || 'medium',
+        status: initialData?.status || 'scheduled',
         startDate: initialData?.startDate || '',
         endDate: initialData?.endDate || '',
     });
@@ -310,6 +313,9 @@ export const AddCallOutJobForm: React.FC<AddCallOutJobFormProps> = ({ clients, o
                 clientId: initialData.clientId,
                 jobName: initialData.jobName,
                 workOrderNumber: initialData.workOrderNumber,
+                description: initialData.description || '',
+                priority: initialData.priority || 'medium',
+                status: initialData.status || 'scheduled',
                 startDate: initialData.startDate,
                 endDate: initialData.endDate,
             });
@@ -317,7 +323,7 @@ export const AddCallOutJobForm: React.FC<AddCallOutJobFormProps> = ({ clients, o
         }
     }, [initialData]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setFormData({ ...formData, [e.target.name]: e.target.value });
     
     const handleFilesAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -333,14 +339,64 @@ export const AddCallOutJobForm: React.FC<AddCallOutJobFormProps> = ({ clients, o
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Validate required fields
+        if (!formData.clientId) {
+            alert('Please select a client');
+            return;
+        }
+        if (!formData.jobName.trim()) {
+            alert('Please enter a job name');
+            return;
+        }
+        if (!formData.workOrderNumber.trim()) {
+            alert('Please enter a work order number');
+            return;
+        }
+        if (!formData.startDate) {
+            alert('Please select a start date');
+            return;
+        }
+        if (!formData.endDate) {
+            alert('Please select an end date');
+            return;
+        }
+        
+        console.log('Form data being submitted:', { ...formData, id: initialData?.id, documents });
         onSave({ ...formData, id: initialData?.id, documents });
     };
 
     return (
         <form onSubmit={handleSubmit}>
-            <FormRow><Label>Client</Label><Select name="clientId" value={formData.clientId} onChange={handleChange} required><option value="">Select a client</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></FormRow>
+            <FormRow>
+                <Label>Client</Label>
+                <Select name="clientId" value={formData.clientId} onChange={handleChange} required>
+                    <option value="">Select a client</option>
+                    {clients.length === 0 ? (
+                        <option value="" disabled>No clients available</option>
+                    ) : (
+                        clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                    )}
+                </Select>
+                {clients.length === 0 && (
+                    <p className="text-sm text-red-600 mt-1">No clients available. Please add clients first.</p>
+                )}
+            </FormRow>
             <FormRow><Label>Job Name</Label><Input name="jobName" value={formData.jobName} onChange={handleChange} required /></FormRow>
             <FormRow><Label>Work Order #</Label><Input name="workOrderNumber" value={formData.workOrderNumber} onChange={handleChange} required /></FormRow>
+            <FormRow><Label>Description</Label><Textarea name="description" value={formData.description} onChange={handleChange} placeholder="Enter job description..." /></FormRow>
+            <FormRow><Label>Priority</Label><Select name="priority" value={formData.priority} onChange={handleChange} required>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+            </Select></FormRow>
+            <FormRow><Label>Status</Label><Select name="status" value={formData.status} onChange={handleChange} required>
+                <option value="scheduled">Scheduled</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+            </Select></FormRow>
             <FormRow><Label>Start Date</Label><Input type="date" name="startDate" value={formData.startDate} onChange={handleChange} required /></FormRow>
             <FormRow><Label>End Date</Label><Input type="date" name="endDate" value={formData.endDate} onChange={handleChange} required /></FormRow>
             
@@ -667,12 +723,12 @@ export const AddFullDailyServiceLogForm: React.FC<AddFullDailyServiceLogFormProp
     );
 
     const [approvers, setApprovers] = useState({
-        almansooriRepName: initialData?.almansooriRep?.name || '',
-        almansooriRepPos: initialData?.almansooriRep?.position || '',
+        almansooriRepName: initialData?.almansooriRep?.[0]?.name || '',
+        almansooriRepPos: initialData?.almansooriRep?.[0]?.position || '',
         mog1Name: initialData?.mogApproval1?.name || '',
-        mog1Pos: initialData?.mogApproval1?.position || '',
+        mog1Date: initialData?.mogApproval1?.date || '',
         mog2Name: initialData?.mogApproval2?.name || '',
-        mog2Pos: initialData?.mogApproval2?.position || '',
+        mog2Date: initialData?.mogApproval2?.date || '',
     });
 
     const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setHeaderData({ ...headerData, [e.target.name]: e.target.value });
@@ -746,9 +802,9 @@ export const AddFullDailyServiceLogForm: React.FC<AddFullDailyServiceLogFormProp
             id: initialData?.id,
             personnel: finalPersonnel,
             equipmentUsed: finalEquipment,
-            almansooriRep: { name: approvers.almansooriRepName, position: approvers.almansooriRepPos },
-            mogApproval1: { name: approvers.mog1Name, position: approvers.mog1Pos },
-            mogApproval2: { name: approvers.mog2Name, position: approvers.mog2Pos },
+            almansooriRep: approvers.almansooriRepName ? [{ name: approvers.almansooriRepName, position: approvers.almansooriRepPos }] : [],
+            mogApproval1: approvers.mog1Name ? { name: approvers.mog1Name, date: approvers.mog1Date } : undefined,
+            mogApproval2: approvers.mog2Name ? { name: approvers.mog2Name, date: approvers.mog2Date } : undefined,
         };
         onSave(saveData);
     };
@@ -808,12 +864,12 @@ export const AddFullDailyServiceLogForm: React.FC<AddFullDailyServiceLogFormProp
                      <div>
                         <h5 className="font-semibold text-slate-600 mb-2">{clientName} Approval 1</h5>
                         <FormRow><Label>Name</Label><Input name="mog1Name" value={approvers.mog1Name} onChange={handleApproverChange} /></FormRow>
-                        <FormRow><Label>Position</Label><Input name="mog1Pos" value={approvers.mog1Pos} onChange={handleApproverChange} /></FormRow>
+                        <FormRow><Label>Date</Label><Input type="date" name="mog1Date" value={approvers.mog1Date} onChange={handleApproverChange} /></FormRow>
                     </div>
                      <div>
                         <h5 className="font-semibold text-slate-600 mb-2">{clientName} Approval 2</h5>
                         <FormRow><Label>Name</Label><Input name="mog2Name" value={approvers.mog2Name} onChange={handleApproverChange} /></FormRow>
-                        <FormRow><Label>Position</Label><Input name="mog2Pos" value={approvers.mog2Pos} onChange={handleApproverChange} /></FormRow>
+                        <FormRow><Label>Date</Label><Input type="date" name="mog2Date" value={approvers.mog2Date} onChange={handleApproverChange} /></FormRow>
                     </div>
                 </div>
             </FormSection>

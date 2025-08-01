@@ -1,13 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { DailyServiceLog, Client, SubAgreement, CallOutJob } from '../types';
+import dailyServiceLogService from '../services/dailyServiceLogService';
 
 interface DailyServiceLogsProps {
   logs: DailyServiceLog[];
   clients: Client[];
   jobs: (SubAgreement | CallOutJob)[];
   onAdd: () => void;
-  onGenerate: () => void;
+  onGenerate: (logId: string) => void;
   onEdit: (log: DailyServiceLog) => void;
   onView: (log: DailyServiceLog) => void;
 }
@@ -35,7 +36,18 @@ const DailyServiceLogs: React.FC<DailyServiceLogsProps> = ({ logs, clients, jobs
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
-      const logDate = new Date(log.date).toISOString().split('T')[0];
+      // Safely parse the date
+      let logDate = '';
+      try {
+        if (log.date) {
+          const date = new Date(log.date);
+          if (!isNaN(date.getTime())) {
+            logDate = date.toISOString().split('T')[0];
+          }
+        }
+      } catch (error) {
+        console.warn('Invalid date format:', log.date);
+      }
 
       const searchTermMatch = log.logNumber.toLowerCase().includes(searchTerm.toLowerCase());
       const clientMatch = clientFilter === '' || log.clientId === clientFilter;
@@ -62,9 +74,6 @@ const DailyServiceLogs: React.FC<DailyServiceLogsProps> = ({ logs, clients, jobs
         <div className="flex items-center gap-2">
             <button onClick={onAdd} className="bg-white text-slate-700 border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50 transition-colors">
                 Add New Log
-            </button>
-            <button onClick={onGenerate} className="bg-brand-blue-600 text-white px-4 py-2 rounded-md hover:bg-brand-blue-700 transition-colors">
-                Generate DSL
             </button>
         </div>
       </div>
@@ -124,18 +133,55 @@ const DailyServiceLogs: React.FC<DailyServiceLogsProps> = ({ logs, clients, jobs
             </tr>
           </thead>
           <tbody>
-            {filteredLogs.map(log => {
+            {filteredLogs.map((log, index) => {
               const linkedJobName = getJobName(log.linkedJobId);
               return (
-              <tr key={log.id} className="bg-white border-b hover:bg-slate-50">
-                <td className="px-6 py-4 font-medium text-slate-900">{log.logNumber}</td>
+              <tr key={`${log.id}-${index}`} className="bg-white border-b hover:bg-slate-50">
+                <td className="px-6 py-4 font-medium text-slate-900">
+                  <div className="flex items-center gap-2">
+                    {log.logNumber}
+                    {log.excelFileName && log.excelFileName.trim() !== '' && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Excel
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-6 py-4">{getClientName(log.clientId)}</td>
                 <td className="px-6 py-4 truncate max-w-xs" title={linkedJobName || log.jobNo}>{linkedJobName || log.jobNo || 'N/A'}</td>
-                <td className="px-6 py-4">{new Date(log.date).toLocaleDateString()}</td>
+                <td className="px-6 py-4">
+                  {(() => {
+                    try {
+                      if (log.date) {
+                        const date = new Date(log.date);
+                        if (!isNaN(date.getTime())) {
+                          return date.toLocaleDateString();
+                        }
+                      }
+                      return 'Invalid Date';
+                    } catch (error) {
+                      return 'Invalid Date';
+                    }
+                  })()}
+                </td>
                 <td className="px-6 py-4 truncate max-w-xs">{formatPersonnel(log.personnel)}</td>
                 <td className="px-6 py-4 text-right space-x-4">
                   <button onClick={() => onView(log)} className="font-medium text-brand-blue-600 hover:underline">View</button>
                   <button onClick={() => onEdit(log)} className="font-medium text-brand-blue-600 hover:underline">Edit</button>
+                  {log.excelFileName && log.excelFileName.trim() !== '' ? (
+                    <button 
+                      onClick={() => {
+                        // Use the public download URL format
+                        const publicDownloadUrl = `http://127.0.0.1:8001/download/${log.excelFileName}`;
+                        window.open(publicDownloadUrl, '_blank');
+                      }} 
+                      className="font-medium text-purple-600 hover:underline"
+                    >
+                      Download
+                    </button>
+                  ) : (
+                    <button onClick={() => onGenerate(log.id)} className="font-medium text-green-600 hover:underline">Generate</button>
+                  )}
                 </td>
               </tr>
             )})}

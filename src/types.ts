@@ -43,6 +43,9 @@ export interface CallOutJob {
   clientId: string;
   jobName: string;
   workOrderNumber: string;
+  description?: string;
+  priority?: string;
+  status?: string;
   startDate: string;
   endDate: string;
   documents: File[];
@@ -53,12 +56,20 @@ export interface PersonnelLogItem {
     name: string;
     position: string;
     dailyStatus: string[]; // array of strings ('X', 'T', '') matching days in month
+    hours?: number; // for backend API
 }
 export interface EquipmentLogItem {
     id: string; // for react key
     name: string;
     quantity: number;
     dailyStatus: string[]; // array of strings ('X', '') matching days in month
+    hours?: number; // for backend API
+}
+
+export interface ApprovalData {
+    name: string;
+    signature?: string;
+    date: string;
 }
 
 export interface DailyServiceLog {
@@ -75,9 +86,9 @@ export interface DailyServiceLog {
     // Optional fields for full DSL
     equipmentUsed?: EquipmentLogItem[];
     personnel?: PersonnelLogItem[];
-    almansooriRep?: { name: string; position: string };
-    mogApproval1?: { name: string; position: string };
-    mogApproval2?: { name: string; position: string };
+    almansooriRep?: { name: string; position: string }[];
+    mogApproval1?: ApprovalData;
+    mogApproval2?: ApprovalData;
 
     // Optional fields for simple log
     excelFile?: File | null;

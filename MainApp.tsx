@@ -63,6 +63,11 @@ const App: React.FC = () => {
     handleDeleteClient,
     handleSaveAgreement,
     handleDeleteAgreement,
+    handleSaveCallOutJob,
+    handleDeleteCallOutJob,
+    handleSaveDailyServiceLog,
+    handleDeleteDailyServiceLog,
+    handleGenerateExcel,
     openIssueCount,
     activeTicketCount,
   } = useAppData();
@@ -176,47 +181,17 @@ const App: React.FC = () => {
     handleCloseModal();
   };
 
-  const handleSaveJob = (data: Partial<CallOutJob>) => {
-    if (data.id) {
-      setJobs(prevJobs => prevJobs.map(job => 
-        job.id === data.id ? { ...job, ...data } as CallOutJob : job
-      ));
-    } else {
-      const newJob: CallOutJob = { 
-        ...(data as Omit<CallOutJob, 'id'>), 
-        id: `coj-${Date.now()}`
-      };
-      setJobs(prev => [newJob, ...prev]);
-    }
+  const handleSaveJob = async (data: Partial<CallOutJob>) => {
+    await handleSaveCallOutJob(data);
     handleCloseModal();
   };
 
-  const handleSaveLog = (data: Partial<DailyServiceLog>) => {
-    let savedLog: DailyServiceLog;
-    let shouldGenerateExcel = false;
+  const handleDeleteJob = (job: CallOutJob) => {
+    handleDeleteCallOutJob(job.id);
+  };
 
-    if (data.id) {
-      savedLog = { ...logs.find(l => l.id === data.id)!, ...data } as DailyServiceLog;
-      setLogs(prevLogs => prevLogs.map(log => 
-        log.id === data.id ? savedLog : log
-      ));
-    } else {
-      savedLog = {
-        id: `dsl-${Date.now()}`,
-        ...(data as Omit<DailyServiceLog, 'id'>), 
-      };
-      setLogs(prev => [savedLog, ...prev]);
-    }
-    
-    // Check if it's a "detailed" log that should have an Excel file generated
-    shouldGenerateExcel = !!(savedLog.personnel?.length || savedLog.equipmentUsed?.length);
-    
-    if (shouldGenerateExcel) {
-      const clientName = clients.find(c => c.id === savedLog.clientId)?.name || 'Unknown Client';
-      const excelHtml = getDslExcelHtml(savedLog, clientName);
-      downloadExcel(excelHtml, `DSL-${savedLog.logNumber.replace(/[\/\\]/g, '-')}`);
-    }
-
+  const handleSaveLog = async (data: Partial<DailyServiceLog>) => {
+    await handleSaveDailyServiceLog(data);
     handleCloseModal();
   };
 
@@ -325,6 +300,7 @@ const App: React.FC = () => {
           clients={clients} 
           onAdd={() => setModalType('addJob')} 
           onEdit={handleOpenEditJobModal} 
+          onDelete={handleDeleteJob}
         />;
       case 'Daily Service Logs':
         return <DailyServiceLogs 
@@ -332,7 +308,7 @@ const App: React.FC = () => {
           clients={clients} 
           jobs={[...agreements, ...jobs]} 
           onAdd={handleOpenSimpleLogModal} 
-          onGenerate={handleOpenFullLogModal} 
+          onGenerate={handleGenerateExcel} 
           onEdit={handleOpenEditLogModal} 
           onView={handleOpenViewLogModal} 
         />;
