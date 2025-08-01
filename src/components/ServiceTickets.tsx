@@ -27,7 +27,7 @@ export const getStatusColor = (status: TicketStatus) => {
   }
 };
 
-const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd, onGenerate, onView, onEdit, onDelete }) => {
+const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd, onGenerate, onView, onEdit, onDelete, onStatusChange }) => {
   const getClientName = (clientId: string) => clients.find(c => c.id === clientId)?.name || 'Unknown Client';
 
   // State for filters
@@ -124,35 +124,44 @@ const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left text-slate-500">
-          <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+        <table className="w-full text-xs text-left text-slate-600">
+          <thead className="text-xs font-medium text-slate-700 uppercase bg-slate-50">
             <tr>
-              <th scope="col" className="px-6 py-3">Ticket #</th>
-              <th scope="col" className="px-6 py-3">Client</th>
-              <th scope="col" className="px-6 py-3">Date</th>
-              <th scope="col" className="px-6 py-3">Amount</th>
-              <th scope="col" className="px-6 py-3">Documents</th>
-              <th scope="col" className="px-6 py-3">Status</th>
-              <th scope="col" className="px-6 py-3 text-right">Actions</th>
+              <th scope="col" className="px-4 py-2">Ticket #</th>
+              <th scope="col" className="px-4 py-2">Client</th>
+              <th scope="col" className="px-4 py-2">Date</th>
+              <th scope="col" className="px-4 py-2">Amount</th>
+              <th scope="col" className="px-4 py-2">Documents</th>
+              <th scope="col" className="px-4 py-2">Status</th>
+              <th scope="col" className="px-4 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredTickets.map(ticket => (
-              <tr key={ticket.id} className="bg-white border-b hover:bg-slate-50">
-                <td className="px-6 py-4 font-medium text-slate-900">{ticket.ticketNumber}</td>
-                <td className="px-6 py-4">{getClientName(ticket.clientId)}</td>
-                <td className="px-6 py-4">{new Date(ticket.date).toLocaleDateString()}</td>
-                <td className="px-6 py-4">${ticket.amount.toLocaleString()}</td>
-                <td className="px-6 py-4 text-center">{ticket.documents.length}</td>
-                <td className="px-6 py-4">
-                  <span className={`text-xs font-medium mr-2 px-2.5 py-0.5 rounded ${getStatusColor(ticket.status)}`}>
-                    {ticket.status}
-                  </span>
+            {filteredTickets.map((ticket, index) => (
+              <tr key={`${ticket.id}-${index}`} className="bg-white border-b hover:bg-slate-50">
+                <td className="px-4 py-2 font-medium text-slate-900 text-xs">{ticket.ticketNumber}</td>
+                <td className="px-4 py-2 text-xs">{getClientName(ticket.clientId)}</td>
+                <td className="px-4 py-2 text-xs">{new Date(ticket.date).toLocaleDateString()}</td>
+                <td className="px-4 py-2 text-xs">${ticket.amount.toLocaleString()}</td>
+                <td className="px-4 py-2 text-center text-xs">{ticket.documents.length}</td>
+                <td className="px-4 py-2">
+                  <select
+                    value={ticket.status}
+                    onChange={(e) => onStatusChange(ticket.id, e.target.value as TicketStatus)}
+                    className={`text-xs font-medium px-2 py-1 rounded-full border-0 focus:ring-2 focus:ring-brand-blue-500 ${getStatusColor(ticket.status)}`}
+                  >
+                    <option value="In Field to Sign">In Field to Sign</option>
+                    <option value="Issue">Issue</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Invoiced">Invoiced</option>
+                  </select>
                 </td>
-                <td className="px-6 py-4 text-right space-x-4">
-                  <button onClick={() => onView(ticket)} className="font-medium text-brand-blue-600 hover:underline">View</button>
-                  <button onClick={() => onEdit(ticket)} className="font-medium text-brand-blue-600 hover:underline">Edit</button>
-                  <button onClick={() => onDelete(ticket)} className="font-medium text-red-600 hover:underline">Delete</button>
+                <td className="px-4 py-2 text-right">
+                  <div className="flex space-x-2 justify-end">
+                    <button onClick={() => onView(ticket)} className="text-xs font-medium text-brand-blue-600 hover:underline">View</button>
+                    <button onClick={() => onEdit(ticket)} className="text-xs font-medium text-brand-blue-600 hover:underline">Edit</button>
+                    <button onClick={() => onDelete(ticket)} className="text-xs font-medium text-red-600 hover:underline">Delete</button>
+                  </div>
                 </td>
               </tr>
             ))}

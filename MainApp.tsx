@@ -70,7 +70,10 @@ const App: React.FC = () => {
     handleGenerateExcel,
     handleSaveServiceTicket,
     handleDeleteServiceTicket,
+    handleStatusChange,
     handleGenerateServiceTicket,
+    handleSaveTicketIssue,
+    handleDeleteTicketIssue,
     openIssueCount,
     activeTicketCount,
   } = useAppData();
@@ -141,10 +144,17 @@ const App: React.FC = () => {
     handleCloseModal();
   };
 
-  const handleSaveIssue = (data: Omit<TicketIssue, 'id'>) => {
-    const newIssue: TicketIssue = { ...data, id: `iss-${Date.now()}`};
-    setIssues(prev => [newIssue, ...prev]);
+  const handleSaveIssue = async (data: any) => {
+    await handleSaveTicketIssue(data);
     handleCloseModal();
+  };
+
+  const handleDeleteIssue = async (issue: any) => {
+    await handleDeleteTicketIssue(issue.id);
+  };
+
+  const handleTicketStatusChange = async (ticketId: string, newStatus: any) => {
+    await handleStatusChange(ticketId, newStatus);
   };
 
   const renderModalContent = () => {
@@ -238,6 +248,7 @@ const App: React.FC = () => {
           onView={handleOpenViewTicketModal} 
           onEdit={handleOpenEditTicketModal} 
           onDelete={(ticket) => handleDeleteServiceTicket(ticket.id)}
+          onStatusChange={handleTicketStatusChange}
         />;
       case 'User Management':
         return <UserManagement users={users} onAdd={() => setModalType('addUser')}/>;
@@ -260,7 +271,7 @@ const App: React.FC = () => {
           onView={handleOpenViewLogModal} 
         />;
       case 'Ticket Issues':
-        return <TicketIssues issues={issues} tickets={tickets} onAdd={() => setModalType('addIssue')} />;
+        return <TicketIssues issues={issues} tickets={tickets} onAdd={() => setModalType('addIssue')} onDelete={handleDeleteIssue} />;
       case 'Document Archive':
         return <DocumentArchive documents={combinedDocuments} clients={clients} />;
       default:

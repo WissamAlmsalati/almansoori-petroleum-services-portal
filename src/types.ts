@@ -1,5 +1,7 @@
 export type UserRole = 'Admin' | 'Manager' | 'User';
 export type TicketStatus = 'In Field to Sign' | 'Issue' | 'Delivered' | 'Invoiced';
+
+export type IssueStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
 export type View = 'Dashboard' | 'Clients' | 'Sub-Agreements' | 'Call-Out Jobs' | 'Daily Service Logs' | 'Service Tickets' | 'Ticket Issues' | 'Document Archive' | 'User Management';
 
 export interface User {
@@ -136,9 +138,12 @@ export interface TicketIssue {
     id: string;
     ticketId: string;
     description: string;
-    status: 'Open' | 'In Progress' | 'Resolved';
-    remarks: string;
+    status: IssueStatus;
+    remarks?: string;
     dateReported: string;
+    createdAt?: string;
+    updatedAt?: string;
+    ticket?: ServiceTicket;
 }
 
 export interface CombinedDocument {

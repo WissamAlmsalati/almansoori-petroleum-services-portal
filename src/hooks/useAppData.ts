@@ -8,7 +8,8 @@ import {
   DailyServiceLog, 
   TicketIssue,
   CombinedDocument,
-  TicketStatus
+  TicketStatus,
+  IssueStatus
 } from '../types';
 import { 
   DUMMY_USERS, 
@@ -22,6 +23,7 @@ import subAgreementService from '../services/subAgreementService';
 import callOutJobService from '../services/callOutJobService';
 import dailyServiceLogService from '../services/dailyServiceLogService';
 import serviceTicketService from '../services/serviceTicketService';
+import ticketIssueService from '../services/ticketIssueService';
 import { useMessages } from '../contexts/MessageContext';
 
 /**
@@ -47,6 +49,7 @@ export const useAppData = () => {
     loadCallOutJobs();
     loadDailyServiceLogs();
     loadServiceTickets();
+    loadTicketIssues();
   }, []);
 
   const loadClients = async () => {
@@ -301,6 +304,37 @@ export const useAppData = () => {
       showMessage('error', 'Failed to load service tickets');
       console.error('Failed to load service tickets:', error);
       setTickets([]); // Set empty array on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTicketIssues = async () => {
+    try {
+      setLoading(true);
+      const data = await ticketIssueService.getTicketIssues();
+      
+      console.log('Raw ticket issues data from API:', data);
+      
+      // Transform backend data to frontend format
+      const transformedIssues = data.map(issue => ({
+        id: issue.id ? issue.id.toString() : `issue-${Date.now()}-${Math.random()}`,
+        ticketId: issue.ticket_id ? issue.ticket_id.toString() : '',
+        description: issue.description || '',
+        status: issue.status as IssueStatus || 'Open',
+        remarks: issue.remarks || '',
+        dateReported: issue.date_reported || '',
+        createdAt: issue.created_at,
+        updatedAt: issue.updated_at,
+        ticket: issue.ticket
+      }));
+      
+      console.log('Transformed ticket issues:', transformedIssues);
+      setIssues(transformedIssues);
+    } catch (error: any) {
+      showMessage('error', 'Failed to load ticket issues');
+      console.error('Failed to load ticket issues:', error);
+      setIssues([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -874,6 +908,38 @@ export const useAppData = () => {
     }
   };
 
+  const handleStatusChange = async (ticketId: string, newStatus: TicketStatus) => {
+    try {
+      setLoading(true);
+      
+      // Find the current ticket to get its data
+      const currentTicket = tickets.find(t => t.id === ticketId);
+      if (!currentTicket) {
+        showMessage('error', 'Ticket not found');
+        return;
+      }
+
+      // Update only the status
+      const updateData = {
+        status: newStatus
+      };
+
+      console.log('Updating ticket status:', { ticketId, newStatus });
+      
+      await serviceTicketService.updateServiceTicket(ticketId, updateData);
+      showMessage('success', 'Status updated successfully');
+      
+      // Refresh the tickets list
+      await loadServiceTickets();
+    } catch (error: any) {
+      console.error('Status update error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to update status';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGenerateServiceTicket = async (data: {
     clientId: string;
     logIds: string[];
@@ -1006,6 +1072,102 @@ export const useAppData = () => {
     return allDocs;
   }, [agreements, jobs, tickets, logs]);
 
+  const handleSaveTicketIssue = async (data: Partial<TicketIssue>) => {
+    try {
+      setLoading(true);
+      
+      // Validate required fields
+      if (!data.ticketId || !data.description || !data.dateReported) {
+        showMessage('error', 'Please fill in all required fields');
+        return;
+      }
+
+      // Transform frontend data to backend format
+      const backendData = {
+        ticket_id: parseInt(data.ticketId),
+        description: data.description,
+        status: data.status || 'Open',
+        remarks: data.remarks || '',
+        date_reported: data.dateReported
+      };
+
+      console.log('Saving ticket issue with data:', backendData);
+
+      if (data.id) {
+        // Update existing ticket issue
+        const updatedIssue = await ticketIssueService.updateTicketIssue(data.id, backendData);
+        
+        // Transform backend response to frontend format
+        const transformedIssue = {
+          id: updatedIssue.id ? updatedIssue.id.toString() : '',
+          ticketId: updatedIssue.ticket_id ? updatedIssue.ticket_id.toString() : '',
+          description: updatedIssue.description || '',
+          status: updatedIssue.status as IssueStatus || 'Open',
+          remarks: updatedIssue.remarks || '',
+          dateReported: updatedIssue.date_reported || '',
+          createdAt: updatedIssue.created_at,
+          updatedAt: updatedIssue.updated_at,
+          ticket: updatedIssue.ticket
+        };
+
+        console.log('Ticket issue updated successfully:', transformedIssue);
+        showMessage('success', 'Ticket issue updated successfully');
+        
+        // Refresh the issues list
+        await loadTicketIssues();
+      } else {
+        // Create new ticket issue
+        const newIssue = await ticketIssueService.createTicketIssue(backendData);
+        
+        // Transform backend response to frontend format
+        const transformedIssue = {
+          id: newIssue.id ? newIssue.id.toString() : '',
+          ticketId: newIssue.ticket_id ? newIssue.ticket_id.toString() : '',
+          description: newIssue.description || '',
+          status: newIssue.status as IssueStatus || 'Open',
+          remarks: newIssue.remarks || '',
+          dateReported: newIssue.date_reported || '',
+          createdAt: newIssue.created_at,
+          updatedAt: newIssue.updated_at,
+          ticket: newIssue.ticket
+        };
+
+        console.log('Ticket issue created successfully:', transformedIssue);
+        showMessage('success', 'Ticket issue created successfully');
+        
+        // Refresh the issues list
+        await loadTicketIssues();
+      }
+    } catch (error: any) {
+      console.error('Ticket issue save error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to save ticket issue';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTicketIssue = async (issueId: string) => {
+    if (!confirm('Are you sure you want to delete this ticket issue?')) return;
+    
+    try {
+      setLoading(true);
+      await ticketIssueService.deleteTicketIssue(issueId);
+      showMessage('success', 'Ticket issue deleted successfully');
+      
+      // Refresh the issues list
+      await loadTicketIssues();
+    } catch (error: any) {
+      console.error('Ticket issue delete error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to delete ticket issue';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
   const openIssueCount = useMemo(() => issues.filter(i => i.status === 'Open').length, [issues]);
   const activeTicketCount = useMemo(() => tickets.filter(t => t.status !== 'Invoiced').length, [tickets]);
 
@@ -1041,7 +1203,10 @@ export const useAppData = () => {
     handleGenerateExcel,
     handleSaveServiceTicket,
     handleDeleteServiceTicket,
+    handleStatusChange,
     handleGenerateServiceTicket,
+    handleSaveTicketIssue,
+    handleDeleteTicketIssue,
 
     // Computed values
     openIssueCount,
@@ -1053,5 +1218,6 @@ export const useAppData = () => {
     loadCallOutJobs,
     loadDailyServiceLogs,
     loadServiceTickets,
+    loadTicketIssues,
   };
 };
