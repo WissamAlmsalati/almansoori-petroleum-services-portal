@@ -121,73 +121,100 @@ const DailyServiceLogs: React.FC<DailyServiceLogsProps> = ({ logs, clients, jobs
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left text-slate-500">
-          <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+        <table className="w-full text-xs text-left text-slate-600">
+          <thead className="text-xs font-medium text-slate-700 uppercase bg-slate-50">
             <tr>
-              <th scope="col" className="px-6 py-3">Log #</th>
-              <th scope="col" className="px-6 py-3">Client</th>
-              <th scope="col" className="px-6 py-3">Job / Agreement</th>
-              <th scope="col" className="px-6 py-3">Date</th>
-              <th scope="col" className="px-6 py-3">Personnel</th>
-              <th scope="col" className="px-6 py-3 text-right">Actions</th>
+              <th scope="col" className="px-4 py-2 tracking-wide">Log #</th>
+              <th scope="col" className="px-4 py-2 tracking-wide">Client</th>
+              <th scope="col" className="px-4 py-2 tracking-wide">Job / Agreement</th>
+              <th scope="col" className="px-4 py-2 tracking-wide">Date</th>
+              <th scope="col" className="px-4 py-2 tracking-wide">Personnel</th>
+              <th scope="col" className="px-4 py-2 text-right tracking-wide">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-white">
             {filteredLogs.map((log, index) => {
               const linkedJobName = getJobName(log.linkedJobId);
               return (
-              <tr key={`${log.id}-${index}`} className="bg-white border-b hover:bg-slate-50">
-                <td className="px-6 py-4 font-medium text-slate-900">
-                  <div className="flex items-center gap-2">
-                    {log.logNumber}
+              <tr key={`${log.id}-${index}`} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                <td className="px-4 py-2">
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-slate-900 text-xs">{log.logNumber}</span>
                     {log.excelFileName && log.excelFileName.trim() !== '' && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Excel
                       </span>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4">{getClientName(log.clientId)}</td>
-                <td className="px-6 py-4 truncate max-w-xs" title={linkedJobName || log.jobNo}>{linkedJobName || log.jobNo || 'N/A'}</td>
-                <td className="px-6 py-4">
-                  {(() => {
-                    try {
-                      if (log.date) {
-                        const date = new Date(log.date);
-                        if (!isNaN(date.getTime())) {
-                          return date.toLocaleDateString();
-                        }
-                      }
-                      return 'Invalid Date';
-                    } catch (error) {
-                      return 'Invalid Date';
-                    }
-                  })()}
+                <td className="px-4 py-2">
+                  <span className="font-medium text-slate-800 text-xs">{getClientName(log.clientId)}</span>
                 </td>
-                <td className="px-6 py-4 truncate max-w-xs">{formatPersonnel(log.personnel)}</td>
-                <td className="px-6 py-4 text-right space-x-4">
-                  <button onClick={() => onView(log)} className="font-medium text-brand-blue-600 hover:underline">View</button>
-                  <button onClick={() => onEdit(log)} className="font-medium text-brand-blue-600 hover:underline">Edit</button>
-                  {log.excelFileName && log.excelFileName.trim() !== '' ? (
-                    <button 
-                      onClick={() => {
-                        // Use the public download URL format
-                        const publicDownloadUrl = `http://127.0.0.1:8001/download/${log.excelFileName}`;
-                        window.open(publicDownloadUrl, '_blank');
-                      }} 
-                      className="font-medium text-purple-600 hover:underline"
-                    >
-                      Download
+                <td className="px-4 py-2 max-w-xs">
+                  <span className="font-medium text-slate-800 text-xs truncate block" title={linkedJobName || log.jobNo}>
+                    {linkedJobName || log.jobNo || 'N/A'}
+                  </span>
+                </td>
+                <td className="px-4 py-2">
+                  <span className="font-medium text-slate-800 text-xs">
+                    {(() => {
+                      try {
+                        if (log.date) {
+                          const date = new Date(log.date);
+                          if (!isNaN(date.getTime())) {
+                            return date.toLocaleDateString();
+                          }
+                        }
+                        return 'Invalid Date';
+                      } catch (error) {
+                        return 'Invalid Date';
+                      }
+                    })()}
+                  </span>
+                </td>
+                <td className="px-4 py-2 max-w-xs">
+                  <span className="text-slate-700 text-xs truncate block" title={formatPersonnel(log.personnel)}>
+                    {formatPersonnel(log.personnel)}
+                  </span>
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <div className="flex items-center justify-end space-x-2">
+                    <button onClick={() => onView(log)} className="text-xs font-medium text-brand-blue-600 hover:text-brand-blue-800 hover:underline transition-colors">
+                      View
                     </button>
-                  ) : (
-                    <button onClick={() => onGenerate(log.id)} className="font-medium text-green-600 hover:underline">Generate</button>
-                  )}
+                    <button onClick={() => onEdit(log)} className="text-xs font-medium text-brand-blue-600 hover:text-brand-blue-800 hover:underline transition-colors">
+                      Edit
+                    </button>
+                    {log.excelFileName && log.excelFileName.trim() !== '' ? (
+                      <button 
+                        onClick={() => {
+                          // Use the public download URL format
+                          const publicDownloadUrl = `http://127.0.0.1:8001/download/${log.excelFileName}`;
+                          window.open(publicDownloadUrl, '_blank');
+                        }} 
+                        className="text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                      >
+                        Download
+                      </button>
+                    ) : (
+                      <button onClick={() => onGenerate(log.id)} className="text-xs font-medium text-green-600 hover:text-green-800 hover:underline transition-colors">
+                        Generate
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             )})}
              {filteredLogs.length === 0 && (
                 <tr>
-                    <td colSpan={6} className="text-center py-10 text-slate-500">No service logs found matching your criteria.</td>
+                    <td colSpan={6} className="text-center py-8 text-slate-500 text-xs">
+                      <div className="flex flex-col items-center">
+                        <svg className="w-8 h-8 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span className="font-medium">No service logs found matching your criteria.</span>
+                      </div>
+                    </td>
                 </tr>
             )}
           </tbody>
