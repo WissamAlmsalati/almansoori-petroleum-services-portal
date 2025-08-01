@@ -9,6 +9,7 @@ interface ServiceTicketsProps {
   onGenerate: () => void;
   onView: (ticket: ServiceTicket) => void;
   onEdit: (ticket: ServiceTicket) => void;
+  onDelete: (ticket: ServiceTicket) => void;
 }
 
 export const getStatusColor = (status: TicketStatus) => {
@@ -26,7 +27,7 @@ export const getStatusColor = (status: TicketStatus) => {
   }
 };
 
-const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd, onGenerate, onView, onEdit }) => {
+const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd, onGenerate, onView, onEdit, onDelete }) => {
   const getClientName = (clientId: string) => clients.find(c => c.id === clientId)?.name || 'Unknown Client';
 
   // State for filters
@@ -151,6 +152,7 @@ const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd
                 <td className="px-6 py-4 text-right space-x-4">
                   <button onClick={() => onView(ticket)} className="font-medium text-brand-blue-600 hover:underline">View</button>
                   <button onClick={() => onEdit(ticket)} className="font-medium text-brand-blue-600 hover:underline">Edit</button>
+                  <button onClick={() => onDelete(ticket)} className="font-medium text-red-600 hover:underline">Delete</button>
                 </td>
               </tr>
             ))}

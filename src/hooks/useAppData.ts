@@ -7,7 +7,8 @@ import {
   CallOutJob, 
   DailyServiceLog, 
   TicketIssue,
-  CombinedDocument 
+  CombinedDocument,
+  TicketStatus
 } from '../types';
 import { 
   DUMMY_USERS, 
@@ -20,6 +21,7 @@ import clientService from '../services/clientService';
 import subAgreementService from '../services/subAgreementService';
 import callOutJobService from '../services/callOutJobService';
 import dailyServiceLogService from '../services/dailyServiceLogService';
+import serviceTicketService from '../services/serviceTicketService';
 import { useMessages } from '../contexts/MessageContext';
 
 /**
@@ -44,6 +46,7 @@ export const useAppData = () => {
     loadAgreements();
     loadCallOutJobs();
     loadDailyServiceLogs();
+    loadServiceTickets();
   }, []);
 
   const loadClients = async () => {
@@ -261,6 +264,43 @@ export const useAppData = () => {
       showMessage('error', 'Failed to load daily service logs');
       console.error('Failed to load daily service logs:', error);
       setLogs([]); // Set empty array on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadServiceTickets = async () => {
+    try {
+      setLoading(true);
+      const data = await serviceTicketService.getServiceTickets();
+      
+      console.log('Raw service tickets data from API:', data);
+      
+      // Transform backend data to frontend format
+      const transformedTickets = data.map(ticket => ({
+        id: ticket.id ? ticket.id.toString() : `ticket-${Date.now()}-${Math.random()}`,
+        ticketNumber: ticket.ticket_number || '',
+        clientId: ticket.client_id ? ticket.client_id.toString() : '',
+        subAgreementId: ticket.sub_agreement_id ? ticket.sub_agreement_id.toString() : undefined,
+        callOutJobId: ticket.call_out_job_id ? ticket.call_out_job_id.toString() : undefined,
+        date: ticket.date || '',
+        status: ticket.status as TicketStatus || 'In Field to Sign',
+        amount: ticket.amount || 0,
+        relatedLogIds: ticket.related_log_ids ? ticket.related_log_ids.map(id => id ? id.toString() : '').filter(id => id !== '') : [],
+        documents: [], // Transform documents if needed
+        createdAt: ticket.created_at,
+        updatedAt: ticket.updated_at,
+        client: ticket.client,
+        subAgreement: ticket.sub_agreement,
+        callOutJob: ticket.call_out_job
+      }));
+      
+      console.log('Transformed tickets:', transformedTickets);
+      setTickets(transformedTickets);
+    } catch (error: any) {
+      showMessage('error', 'Failed to load service tickets');
+      console.error('Failed to load service tickets:', error);
+      setTickets([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -712,6 +752,181 @@ export const useAppData = () => {
     }
   };
 
+  // API handlers for service tickets
+  const handleSaveServiceTicket = async (data: Partial<ServiceTicket>) => {
+    try {
+      setLoading(true);
+      
+      // Debug: Log the incoming data
+      console.log('Incoming data for service ticket:', data);
+      
+      // Validate required fields
+      if (!data.clientId) {
+        throw new Error('Client is required');
+      }
+      if (!data.date) {
+        throw new Error('Date is required');
+      }
+      if (!data.status) {
+        throw new Error('Status is required');
+      }
+      if (!data.amount) {
+        throw new Error('Amount is required');
+      }
+      
+      // Transform frontend data to backend format
+      const backendData = {
+        client_id: parseInt(data.clientId),
+        sub_agreement_id: data.subAgreementId ? parseInt(data.subAgreementId) : null,
+        call_out_job_id: data.callOutJobId ? parseInt(data.callOutJobId) : null,
+        date: data.date,
+        status: data.status,
+        amount: data.amount,
+        related_log_ids: data.relatedLogIds?.map(id => parseInt(id)) || []
+      };
+      
+      console.log('Backend data being sent:', backendData);
+
+      if (data.id) {
+        const updatedTicket = await serviceTicketService.updateServiceTicket(data.id, backendData);
+        // Transform backend response to frontend format
+        const transformedTicket = {
+          id: updatedTicket.id ? updatedTicket.id.toString() : '',
+          ticketNumber: updatedTicket.ticket_number || '',
+          clientId: updatedTicket.client_id ? updatedTicket.client_id.toString() : '',
+          subAgreementId: updatedTicket.sub_agreement_id ? updatedTicket.sub_agreement_id.toString() : undefined,
+          callOutJobId: updatedTicket.call_out_job_id ? updatedTicket.call_out_job_id.toString() : undefined,
+          date: updatedTicket.date || '',
+          status: updatedTicket.status as TicketStatus || 'In Field to Sign',
+          amount: updatedTicket.amount || 0,
+          relatedLogIds: updatedTicket.related_log_ids ? updatedTicket.related_log_ids.map(id => id ? id.toString() : '').filter(id => id !== '') : [],
+          documents: [],
+          createdAt: updatedTicket.created_at,
+          updatedAt: updatedTicket.updated_at,
+          client: updatedTicket.client,
+          subAgreement: updatedTicket.sub_agreement,
+          callOutJob: updatedTicket.call_out_job
+        };
+        
+        // Refresh the tickets from the server to get the latest data
+        await loadServiceTickets();
+        showMessage('success', 'Service ticket updated successfully');
+      } else {
+        const newTicket = await serviceTicketService.createServiceTicket(backendData);
+        // Transform backend response to frontend format
+        const transformedTicket = {
+          id: newTicket.id ? newTicket.id.toString() : '',
+          ticketNumber: newTicket.ticket_number || '',
+          clientId: newTicket.client_id ? newTicket.client_id.toString() : '',
+          subAgreementId: newTicket.sub_agreement_id ? newTicket.sub_agreement_id.toString() : undefined,
+          callOutJobId: newTicket.call_out_job_id ? newTicket.call_out_job_id.toString() : undefined,
+          date: newTicket.date || '',
+          status: newTicket.status as TicketStatus || 'In Field to Sign',
+          amount: newTicket.amount || 0,
+          relatedLogIds: newTicket.related_log_ids ? newTicket.related_log_ids.map(id => id ? id.toString() : '').filter(id => id !== '') : [],
+          documents: [],
+          createdAt: newTicket.created_at,
+          updatedAt: newTicket.updated_at,
+          client: newTicket.client,
+          subAgreement: newTicket.sub_agreement,
+          callOutJob: newTicket.call_out_job
+        };
+        
+        // Refresh the tickets from the server to get the latest data
+        await loadServiceTickets();
+        showMessage('success', 'Service ticket created successfully');
+      }
+    } catch (error: any) {
+      console.error('Service ticket save error:', error);
+      
+      // Check if it's a 422 validation error
+      if (error.response && error.response.status === 422) {
+        const validationErrors = error.response.data.errors;
+        if (validationErrors) {
+          const errorMessages = Object.values(validationErrors).flat().join(', ');
+          showMessage('error', `Validation error: ${errorMessages}`);
+        } else {
+          showMessage('error', 'Validation error: Please check your input data');
+        }
+      } else {
+        const errorMessage = error instanceof Error ? error.message : (data.id ? 'Failed to update service ticket' : 'Failed to create service ticket');
+        showMessage('error', errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteServiceTicket = async (ticketId: string) => {
+    if (!confirm('Are you sure you want to delete this service ticket?')) return;
+    
+    try {
+      setLoading(true);
+      await serviceTicketService.deleteServiceTicket(ticketId);
+      // Refresh the tickets from the server to get the latest data
+      await loadServiceTickets();
+      showMessage('success', 'Service ticket deleted successfully');
+    } catch (error) {
+      showMessage('error', 'Failed to delete service ticket');
+      console.error('Service ticket delete error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateServiceTicket = async (data: {
+    clientId: string;
+    logIds: string[];
+    subAgreementId?: string;
+    callOutJobId?: string;
+    date: string;
+    status: string;
+    amount: number;
+  }) => {
+    try {
+      setLoading(true);
+      
+      // Transform frontend data to backend format
+      const backendData = {
+        client_id: parseInt(data.clientId),
+        log_ids: data.logIds.map(id => parseInt(id)),
+        sub_agreement_id: data.subAgreementId ? parseInt(data.subAgreementId) : null,
+        call_out_job_id: data.callOutJobId ? parseInt(data.callOutJobId) : null,
+        date: data.date,
+        status: data.status,
+        amount: data.amount
+      };
+      
+      console.log('Generate service ticket data:', backendData);
+      
+      const newTicket = await serviceTicketService.generateServiceTicket(backendData);
+      
+      // Refresh the tickets from the server to get the latest data
+      await loadServiceTickets();
+      showMessage('success', 'Service ticket generated successfully');
+      
+      return newTicket;
+    } catch (error: any) {
+      console.error('Service ticket generation error:', error);
+      
+      if (error.response && error.response.status === 422) {
+        const validationErrors = error.response.data.errors;
+        if (validationErrors) {
+          const errorMessages = Object.values(validationErrors).flat().join(', ');
+          showMessage('error', `Validation error: ${errorMessages}`);
+        } else {
+          showMessage('error', 'Validation error: Please check your input data');
+        }
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to generate service ticket';
+        showMessage('error', errorMessage);
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Derived data
   const combinedDocuments = useMemo((): CombinedDocument[] => {
     const allDocs: CombinedDocument[] = [];
@@ -824,6 +1039,9 @@ export const useAppData = () => {
     handleSaveDailyServiceLog,
     handleDeleteDailyServiceLog,
     handleGenerateExcel,
+    handleSaveServiceTicket,
+    handleDeleteServiceTicket,
+    handleGenerateServiceTicket,
 
     // Computed values
     openIssueCount,
@@ -834,5 +1052,6 @@ export const useAppData = () => {
     loadAgreements,
     loadCallOutJobs,
     loadDailyServiceLogs,
+    loadServiceTickets,
   };
 };

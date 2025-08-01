@@ -109,6 +109,27 @@ export interface ServiceTicket {
   amount: number;
   relatedLogIds: string[];
   documents: File[];
+  // Additional fields for API integration
+  createdAt?: string;
+  updatedAt?: string;
+  client?: {
+    id: number;
+    name: string;
+    logo_url?: string;
+    logo_file_path?: string;
+    contacts?: any[];
+  };
+  subAgreement?: {
+    id: number;
+    name: string;
+    amount: number;
+    balance: number;
+  };
+  callOutJob?: {
+    id: number;
+    job_name: string;
+    work_order_number: string;
+  };
 }
 
 export interface TicketIssue {

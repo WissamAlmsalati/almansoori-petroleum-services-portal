@@ -68,6 +68,9 @@ const App: React.FC = () => {
     handleSaveDailyServiceLog,
     handleDeleteDailyServiceLog,
     handleGenerateExcel,
+    handleSaveServiceTicket,
+    handleDeleteServiceTicket,
+    handleGenerateServiceTicket,
     openIssueCount,
     activeTicketCount,
   } = useAppData();
@@ -95,79 +98,22 @@ const App: React.FC = () => {
     getModalTitle,
   } = useModalState();
 
-  // Local data handlers (for dummy data not yet connected to API)
-  const handleSaveTicket = (data: Partial<ServiceTicket> & { ticketNumber: string }) => {
-    if (data.id) {
-      const originalTicket = tickets.find(t => t.id === data.id);
-      if (!originalTicket) {
-        handleCloseModal();
-        return;
-      }
-
-      const updatedTicket = { ...originalTicket, ...data } as ServiceTicket;
-      setTickets(prevTickets => prevTickets.map(t => t.id === data.id ? updatedTicket : t));
-
-      // Update agreement balances intelligently
-      setAgreements(prev => {
-        let newAgreements = [...prev];
-        // 1. Revert old balance deduction if there was an old agreement
-        if (originalTicket.subAgreementId) {
-          newAgreements = newAgreements.map(agg => 
-            agg.id === originalTicket.subAgreementId 
-              ? { ...agg, balance: agg.balance + originalTicket.amount } 
-              : agg
-          );
-        }
-        // 2. Apply new balance deduction if there is a new agreement
-        if (updatedTicket.subAgreementId) {
-          newAgreements = newAgreements.map(agg =>
-            agg.id === updatedTicket.subAgreementId
-              ? { ...agg, balance: agg.balance - updatedTicket.amount }
-              : agg
-          );
-        }
-        return newAgreements;
-      });
-    } else {
-      const newTicket: ServiceTicket = { 
-        ...(data as Omit<ServiceTicket, 'id'>), 
-        id: `st-${Date.now()}` 
-      };
-      setTickets(prev => [newTicket, ...prev]);
-      
-      if(newTicket.subAgreementId) {
-        setAgreements(prev => prev.map(agg => 
-          agg.id === newTicket.subAgreementId 
-            ? {...agg, balance: agg.balance - newTicket.amount} 
-            : agg
-        ));
-      }
-    }
+  // Service ticket handlers
+  const handleSaveTicket = async (data: Partial<ServiceTicket> & { ticketNumber: string }) => {
+    await handleSaveServiceTicket(data);
     handleCloseModal();
   };
 
-  const handleSaveGeneratedTicket = (data: any) => {
-    const newTicket: ServiceTicket = { 
-      id: `st-${Date.now()}`,
-      ticketNumber: data.ticketNumber,
+  const handleSaveGeneratedTicket = async (data: any) => {
+    await handleGenerateServiceTicket({
       clientId: data.clientId,
+      logIds: data.relatedLogIds || [],
       subAgreementId: data.subAgreementId,
       callOutJobId: data.callOutJobId,
       date: data.date,
-      status: 'Delivered',
-      amount: data.amount,
-      relatedLogIds: data.relatedLogIds,
-      documents: data.documents,
-    };
-    setTickets(prev => [newTicket, ...prev]);
-    
-    if(newTicket.subAgreementId) {
-      setAgreements(prev => prev.map(agg => 
-        agg.id === newTicket.subAgreementId 
-          ? {...agg, balance: agg.balance - newTicket.amount} 
-          : agg
-      ));
-    }
+      status: data.status || 'In Field to Sign',
+      amount: data.amount
+    });
     handleCloseModal();
   };
   
@@ -291,6 +237,7 @@ const App: React.FC = () => {
           onGenerate={() => setModalType('generateTicket')} 
           onView={handleOpenViewTicketModal} 
           onEdit={handleOpenEditTicketModal} 
+          onDelete={(ticket) => handleDeleteServiceTicket(ticket.id)}
         />;
       case 'User Management':
         return <UserManagement users={users} onAdd={() => setModalType('addUser')}/>;
