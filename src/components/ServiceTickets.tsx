@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ServiceTicket, Client, TicketStatus } from '../types';
+import Pagination from './Pagination';
 
 interface ServiceTicketsProps {
   tickets: ServiceTicket[];
@@ -37,6 +38,8 @@ const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd
   const [dateFilter, setDateFilter] = useState('');
   const [docsFilter, setDocsFilter] = useState('');
   const [ticketTypeFilter, setTicketTypeFilter] = useState(''); // manual vs generated
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const filteredTickets = useMemo(() => {
     return tickets.filter(ticket => {
@@ -57,6 +60,18 @@ const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd
       return searchTermMatch && clientMatch && statusMatch && dateMatch && docsMatch && ticketTypeMatch;
     });
   }, [tickets, searchTerm, clientFilter, statusFilter, dateFilter, docsFilter, ticketTypeFilter]);
+
+  // Pagination logic
+  const totalItems = filteredTickets.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTickets = filteredTickets.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, clientFilter, statusFilter, dateFilter, docsFilter, ticketTypeFilter]);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -137,7 +152,7 @@ const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd
             </tr>
           </thead>
           <tbody>
-            {filteredTickets.map((ticket, index) => (
+            {paginatedTickets.map((ticket, index) => (
               <tr key={`${ticket.id}-${index}`} className="bg-white border-b hover:bg-slate-50">
                 <td className="px-4 py-2 font-medium text-slate-900 text-xs">{ticket.ticketNumber}</td>
                 <td className="px-4 py-2 text-xs">{getClientName(ticket.clientId)}</td>
@@ -158,7 +173,7 @@ const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd
                 </td>
               </tr>
             ))}
-            {filteredTickets.length === 0 && (
+            {paginatedTickets.length === 0 && (
                 <tr>
                     <td colSpan={7} className="text-center py-10 text-slate-500">No tickets found matching your criteria.</td>
                 </tr>
@@ -166,6 +181,18 @@ const ServiceTickets: React.FC<ServiceTicketsProps> = ({ tickets, clients, onAdd
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      )}
     </div>
   );
 };

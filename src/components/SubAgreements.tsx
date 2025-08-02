@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { SubAgreement, Client, ServiceTicket } from '../types';
+import Pagination from './Pagination';
 
 interface SubAgreementsProps {
   agreements: SubAgreement[];
@@ -14,6 +15,8 @@ interface SubAgreementsProps {
 const SubAgreements: React.FC<SubAgreementsProps> = ({ agreements, clients, tickets, onAdd, onEdit, onDelete, isLoading }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const getClientName = (clientId: string) => clients.find(c => c.id === clientId)?.name || 'Unknown Client';
   
@@ -43,6 +46,18 @@ const SubAgreements: React.FC<SubAgreementsProps> = ({ agreements, clients, tick
       return nameMatch && statusMatch;
     });
   }, [agreements, searchTerm, statusFilter]);
+
+  // Pagination logic
+  const totalItems = filteredAgreements.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedAgreements = filteredAgreements.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -95,7 +110,7 @@ const SubAgreements: React.FC<SubAgreementsProps> = ({ agreements, clients, tick
             </tr>
           </thead>
           <tbody>
-            {filteredAgreements.map(agreement => {
+            {paginatedAgreements.map(agreement => {
                const nearExpiry = isNearExpiry(agreement.endDate);
                const lowBalance = isLowBalance(agreement.balance, agreement.amount);
                const ticketCount = tickets.filter(t => t.subAgreementId === agreement.id).length;
@@ -135,7 +150,7 @@ const SubAgreements: React.FC<SubAgreementsProps> = ({ agreements, clients, tick
                 </td>
               </tr>
             )})}
-            {filteredAgreements.length === 0 && (
+            {paginatedAgreements.length === 0 && (
                 <tr>
                     <td colSpan={9} className="text-center py-10 text-slate-500">No agreements found matching your criteria.</td>
                 </tr>
@@ -143,6 +158,18 @@ const SubAgreements: React.FC<SubAgreementsProps> = ({ agreements, clients, tick
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      )}
     </div>
   );
 };

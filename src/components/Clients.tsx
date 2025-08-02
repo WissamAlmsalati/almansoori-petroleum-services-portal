@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Client } from '../types';
+import Pagination from './Pagination';
 
 interface ClientsProps {
   clients: Client[];
@@ -11,6 +12,16 @@ interface ClientsProps {
 }
 
 const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit, onDelete, isLoading = false }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Pagination logic
+  const totalItems = clients.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedClients = clients.slice(startIndex, endIndex);
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
@@ -34,7 +45,7 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit, onDelete, isL
             </tr>
           </thead>
           <tbody>
-            {clients.map(client => {
+            {paginatedClients.map(client => {
               const primaryContact = client.contacts && client.contacts[0];
               return (
               <tr key={client.id} className="bg-white border-b hover:bg-slate-50">
@@ -69,6 +80,18 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit, onDelete, isL
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      )}
     </div>
   );
 };

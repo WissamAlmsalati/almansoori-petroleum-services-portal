@@ -81,6 +81,12 @@ const App: React.FC = () => {
     handleDeleteDocument,
     handleBulkDeleteDocuments,
     handleDownloadDocument,
+    handleSaveUser,
+    handleDeleteUser,
+    handleBulkDeleteUsers,
+    handleResetUserPassword,
+
+    handleApproveUser,
     openIssueCount,
     activeTicketCount,
   } = useAppData();
@@ -95,6 +101,7 @@ const App: React.FC = () => {
     editingJob,
     editingLog,
     viewingLog,
+    editingUser,
     handleOpenEditClientModal,
     handleOpenEditAgreementModal,
     handleOpenEditTicketModal,
@@ -104,6 +111,7 @@ const App: React.FC = () => {
     handleOpenFullLogModal,
     handleOpenEditLogModal,
     handleOpenViewLogModal,
+    handleOpenEditUserModal,
     handleCloseModal,
     getModalTitle,
   } = useModalState();
@@ -127,13 +135,8 @@ const App: React.FC = () => {
     handleCloseModal();
   };
   
-  const handleSaveUser = (data: Omit<User, 'id' | 'avatarUrl'>) => {
-    const newUser: User = { 
-      ...data, 
-      id: `user-${Date.now()}`, 
-      avatarUrl: `https://picsum.photos/seed/user${Date.now()}/40/40`
-    };
-    setUsers(prev => [newUser, ...prev]);
+  const handleSaveUserWrapper = async (data: any) => {
+    await handleSaveUser(data);
     handleCloseModal();
   };
 
@@ -195,7 +198,9 @@ const App: React.FC = () => {
           onCancel={handleCloseModal}
         />;
       case 'addUser':
-        return <AddUserForm onSave={handleSaveUser} onCancel={handleCloseModal} />;
+        return <AddUserForm onSave={handleSaveUserWrapper} onCancel={handleCloseModal} />;
+      case 'editUser':
+        return <AddUserForm onSave={handleSaveUserWrapper} onCancel={handleCloseModal} initialData={editingUser} />;
       case 'addJob':
         return <AddCallOutJobForm clients={clients} onSave={handleSaveJob} onCancel={handleCloseModal} />;
       case 'editJob':
@@ -256,7 +261,16 @@ const App: React.FC = () => {
 
         />;
       case 'User Management':
-        return <UserManagement users={users} onAdd={() => setModalType('addUser')}/>;
+        return <UserManagement 
+          users={users} 
+          onAdd={() => setModalType('addUser')}
+          onEdit={handleOpenEditUserModal}
+          onDelete={(user) => handleDeleteUser(user.id)}
+          onBulkDelete={handleBulkDeleteUsers}
+                  onResetPassword={(userId, newPassword) => handleResetUserPassword(userId, newPassword)}
+        onApproveUser={handleApproveUser}
+          isLoading={loading}
+        />;
       case 'Call-Out Jobs':
         return <CallOutJobs 
           jobs={jobs} 

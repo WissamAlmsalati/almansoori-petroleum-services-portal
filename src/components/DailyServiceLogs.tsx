@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { DailyServiceLog, Client, SubAgreement, CallOutJob } from '../types';
 import dailyServiceLogService from '../services/dailyServiceLogService';
+import Pagination from './Pagination';
 
 interface DailyServiceLogsProps {
   logs: DailyServiceLog[];
@@ -19,6 +20,8 @@ const DailyServiceLogs: React.FC<DailyServiceLogsProps> = ({ logs, clients, jobs
   const [jobFilter, setJobFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [logTypeFilter, setLogTypeFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const getClientName = (clientId: string) => clients.find(c => c.id === clientId)?.name || 'N/A';
   
@@ -66,6 +69,18 @@ const DailyServiceLogs: React.FC<DailyServiceLogsProps> = ({ logs, clients, jobs
   const jobsForFilter = useMemo(() => {
     return jobs.sort((a,b) => ('jobName' in a ? a.jobName : a.name).localeCompare('jobName' in b ? b.jobName : b.name));
   }, [jobs]);
+
+  // Pagination logic
+  const totalItems = filteredLogs.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, clientFilter, jobFilter, dateFilter, logTypeFilter]);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -133,7 +148,7 @@ const DailyServiceLogs: React.FC<DailyServiceLogsProps> = ({ logs, clients, jobs
             </tr>
           </thead>
           <tbody className="bg-white">
-            {filteredLogs.map((log, index) => {
+            {paginatedLogs.map((log, index) => {
               const linkedJobName = getJobName(log.linkedJobId);
               return (
               <tr key={`${log.id}-${index}`} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
@@ -205,7 +220,7 @@ const DailyServiceLogs: React.FC<DailyServiceLogsProps> = ({ logs, clients, jobs
                 </td>
               </tr>
             )})}
-             {filteredLogs.length === 0 && (
+             {paginatedLogs.length === 0 && (
                 <tr>
                     <td colSpan={6} className="text-center py-8 text-slate-500 text-xs">
                       <div className="flex flex-col items-center">
@@ -220,6 +235,18 @@ const DailyServiceLogs: React.FC<DailyServiceLogsProps> = ({ logs, clients, jobs
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      )}
     </div>
   );
 };

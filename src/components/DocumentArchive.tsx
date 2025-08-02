@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Client, DocumentArchive } from '../types';
+import Pagination from './Pagination';
 
 interface DocumentArchiveProps {
   documents: DocumentArchive[];
@@ -51,6 +52,8 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
   const [clientFilter, setClientFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const filteredDocuments = useMemo(() => {
     return documents.filter(doc => {
@@ -65,6 +68,18 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
   }, [documents, searchTerm, clientFilter, categoryFilter]);
 
   const categories = useMemo(() => [...new Set(documents.map(d => d.category))].sort(), [documents]);
+
+  // Pagination logic
+  const totalItems = filteredDocuments.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDocuments = filteredDocuments.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, clientFilter, categoryFilter]);
 
   const formatBytes = (bytes: number, decimals = 2) => {
     if (bytes === 0) return '0 Bytes';
@@ -167,7 +182,7 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredDocuments.map(doc => (
+            {paginatedDocuments.map(doc => (
               <tr key={doc.id} className="bg-white border-b hover:bg-slate-50">
                 <td className="px-4 py-2">
                   <input
@@ -216,7 +231,7 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
                 </td>
               </tr>
             ))}
-             {filteredDocuments.length === 0 && (
+             {paginatedDocuments.length === 0 && (
                 <tr>
                     <td colSpan={11} className="text-center py-10 text-slate-500">No documents found matching your criteria.</td>
                 </tr>
@@ -224,6 +239,18 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      )}
     </div>
   );
 };

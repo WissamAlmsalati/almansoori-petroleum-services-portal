@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { CallOutJob, Client } from '../types';
+import Pagination from './Pagination';
 
 interface CallOutJobsProps {
   jobs: CallOutJob[];
@@ -11,7 +12,17 @@ interface CallOutJobsProps {
 }
 
 const CallOutJobs: React.FC<CallOutJobsProps> = ({ jobs, clients, onAdd, onEdit, onDelete }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   const getClientName = (clientId: string) => clients.find(c => c.id === clientId)?.name || 'N/A';
+
+  // Pagination logic
+  const totalItems = jobs.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedJobs = jobs.slice(startIndex, endIndex);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -37,7 +48,7 @@ const CallOutJobs: React.FC<CallOutJobsProps> = ({ jobs, clients, onAdd, onEdit,
             </tr>
           </thead>
           <tbody className="bg-white">
-            {jobs.map((job, index) => (
+            {paginatedJobs.map((job, index) => (
               <tr key={`${job.id}-${index}`} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                 <td className="px-4 py-2">
                   <span className="font-medium text-slate-900 text-xs">{job.jobName}</span>
@@ -89,7 +100,7 @@ const CallOutJobs: React.FC<CallOutJobsProps> = ({ jobs, clients, onAdd, onEdit,
                 </td>
               </tr>
             ))}
-            {jobs.length === 0 && (
+            {paginatedJobs.length === 0 && (
                 <tr>
                     <td colSpan={9} className="text-center py-8 text-slate-500 text-xs">
                       <div className="flex flex-col items-center">
@@ -104,6 +115,18 @@ const CallOutJobs: React.FC<CallOutJobsProps> = ({ jobs, clients, onAdd, onEdit,
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      )}
     </div>
   );
 };

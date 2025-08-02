@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { TicketIssue, ServiceTicket } from '../types';
+import Pagination from './Pagination';
 
 interface TicketIssuesProps {
   issues: TicketIssue[];
@@ -19,7 +20,17 @@ const getStatusColor = (status: 'Open' | 'In Progress' | 'Resolved' | 'Closed') 
 };
 
 const TicketIssues: React.FC<TicketIssuesProps> = ({ issues, tickets, onAdd, onDelete }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   const getTicketNumber = (ticketId: string) => tickets.find(t => t.id === ticketId)?.ticketNumber || 'N/A';
+
+  // Pagination logic
+  const totalItems = issues.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedIssues = issues.slice(startIndex, endIndex);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -41,7 +52,7 @@ const TicketIssues: React.FC<TicketIssuesProps> = ({ issues, tickets, onAdd, onD
             </tr>
           </thead>
           <tbody>
-            {issues.map((issue, index) => (
+            {paginatedIssues.map((issue, index) => (
               <tr key={`${issue.id}-${index}`} className="bg-white border-b hover:bg-slate-50">
                 <td className="px-4 py-2 font-medium text-slate-900 text-xs">{getTicketNumber(issue.ticketId)}</td>
                 <td className="px-4 py-2 max-w-sm">
@@ -69,6 +80,18 @@ const TicketIssues: React.FC<TicketIssuesProps> = ({ issues, tickets, onAdd, onD
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      )}
     </div>
   );
 };

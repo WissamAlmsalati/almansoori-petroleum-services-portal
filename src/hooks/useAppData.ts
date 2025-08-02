@@ -3,6 +3,7 @@ import {
   Client, 
   SubAgreement, 
   User, 
+  UserRole,
   ServiceTicket, 
   CallOutJob, 
   DailyServiceLog, 
@@ -13,7 +14,6 @@ import {
   IssueStatus
 } from '../types';
 import { 
-  DUMMY_USERS, 
   DUMMY_SERVICE_TICKETS, 
   DUMMY_CALL_OUT_JOBS, 
   DUMMY_SERVICE_LOGS, 
@@ -26,6 +26,7 @@ import dailyServiceLogService from '../services/dailyServiceLogService';
 import serviceTicketService from '../services/serviceTicketService';
 import ticketIssueService from '../services/ticketIssueService';
 import documentArchiveService from '../services/documentArchiveService';
+import userService from '../services/userService';
 import { useMessages } from '../contexts/MessageContext';
 
 /**
@@ -35,7 +36,7 @@ export const useAppData = () => {
   // State for all data types
   const [clients, setClients] = useState<Client[]>([]);
   const [agreements, setAgreements] = useState<SubAgreement[]>([]);
-  const [users, setUsers] = useState<User[]>(DUMMY_USERS);
+  const [users, setUsers] = useState<User[]>([]);
   const [tickets, setTickets] = useState<ServiceTicket[]>(DUMMY_SERVICE_TICKETS);
   const [jobs, setJobs] = useState<CallOutJob[]>(DUMMY_CALL_OUT_JOBS);
   const [logs, setLogs] = useState<DailyServiceLog[]>(DUMMY_SERVICE_LOGS);
@@ -54,6 +55,7 @@ export const useAppData = () => {
     loadServiceTickets();
     loadTicketIssues();
     loadDocuments();
+    loadUsers();
   }, []);
 
   const loadClients = async () => {
@@ -1384,7 +1386,182 @@ export const useAppData = () => {
     }
   };
 
+  // User Management Functions
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const usersData = await userService.getUsers();
+      
+      console.log('Raw users data from API:', usersData);
+      
+      // Transform backend data to frontend format
+      const transformedUsers = usersData.map(user => ({
+        id: user.id ? user.id.toString() : `user-${Date.now()}-${Math.random()}`,
+        name: user.name || '',
+        email: user.email || '',
+        role: (user.roles && user.roles.length > 0 ? user.roles[0].name : 'User') as UserRole,
+        avatarUrl: user.avatar_url,
+        emailVerifiedAt: user.email_verified_at,
+        createdAt: user.created_at,
+        updatedAt: user.updated_at,
+        status: user.status || 'active' // Default to active since backend doesn't have status field
+      }));
+      
+      console.log('Transformed users:', transformedUsers);
+      setUsers(transformedUsers);
+    } catch (error: any) {
+      console.error('Failed to load users:', error);
+      
+      // Check if it's a permission error
+      if (error.response?.status === 403) {
+        showMessage('error', 'You do not have permission to view users. Admin access required.');
+      } else if (error.response?.status === 401) {
+        showMessage('error', 'Please log in again to access user management.');
+      } else {
+        showMessage('error', 'Failed to load users. Please try again.');
+      }
+      
+      // Set empty array on error
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleSaveUser = async (data: {
+    id?: string;
+    name: string;
+    email: string;
+    password?: string;
+    password_confirmation?: string;
+    role: string;
+    avatar?: File;
+    status?: 'active' | 'inactive' | 'pending';
+  }) => {
+    try {
+      setLoading(true);
+      
+      if (data.id) {
+        // Update existing user - no password required
+        const updateData: any = {
+          name: data.name,
+          email: data.email,
+          role: data.role
+        };
+        if (data.status) {
+          updateData.status = data.status;
+        }
+        if (data.avatar) {
+          updateData.avatar = data.avatar;
+        }
+        
+        await userService.updateUser(data.id, updateData);
+        showMessage('success', 'User updated successfully');
+      } else {
+        // Create new user - password required
+        if (!data.password || !data.password_confirmation) {
+          showMessage('error', 'Password and confirmation are required for new users');
+          return;
+        }
+        
+        const createData = {
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          password_confirmation: data.password_confirmation,
+          role: data.role,
+          avatar: data.avatar
+        };
+        
+        await userService.createUser(createData);
+        showMessage('success', 'User created successfully');
+      }
+      
+      // Refresh the users list
+      await loadUsers();
+    } catch (error: any) {
+      console.error('User save error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to save user';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    
+    try {
+      setLoading(true);
+      await userService.deleteUser(userId);
+      showMessage('success', 'User deleted successfully');
+      
+      // Refresh the users list
+      await loadUsers();
+    } catch (error: any) {
+      console.error('User delete error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to delete user';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkDeleteUsers = async (userIds: string[]) => {
+    if (!confirm(`Are you sure you want to delete ${userIds.length} users?`)) return;
+    
+    try {
+      setLoading(true);
+      const numericIds = userIds.map(id => parseInt(id));
+      await userService.bulkDeleteUsers(numericIds);
+      showMessage('success', `${userIds.length} users deleted successfully`);
+      
+      // Refresh the users list
+      await loadUsers();
+    } catch (error: any) {
+      console.error('Bulk user delete error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to delete users';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetUserPassword = async (userId: string, newPassword: string) => {
+    try {
+      setLoading(true);
+      await userService.resetUserPassword(userId, {
+        new_password: newPassword,
+        new_password_confirmation: newPassword
+      });
+      showMessage('success', 'User password reset successfully');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to reset password';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+  const handleApproveUser = async (userId: string) => {
+    try {
+      setLoading(true);
+      await userService.updateUser(userId, { status: 'active' });
+      showMessage('success', 'User approved successfully');
+      
+      // Refresh the users list
+      await loadUsers();
+    } catch (error: any) {
+      console.error('User approval error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to approve user';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const openIssueCount = useMemo(() => issues.filter(i => i.status === 'Open').length, [issues]);
   const activeTicketCount = useMemo(() => tickets.filter(t => t.status !== 'Invoiced').length, [tickets]);
@@ -1431,6 +1608,11 @@ export const useAppData = () => {
     handleDeleteDocument,
     handleBulkDeleteDocuments,
     handleDownloadDocument,
+    handleSaveUser,
+    handleDeleteUser,
+    handleBulkDeleteUsers,
+    handleResetUserPassword,
+    handleApproveUser,
 
     // Computed values
     openIssueCount,
@@ -1444,5 +1626,6 @@ export const useAppData = () => {
     loadServiceTickets,
     loadTicketIssues,
     loadDocuments,
+    loadUsers,
   };
 };

@@ -9,7 +9,11 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  avatarUrl: string;
+  avatarUrl?: string;
+  emailVerifiedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  status?: 'active' | 'inactive' | 'pending';
 }
 
 export interface ContactPerson {

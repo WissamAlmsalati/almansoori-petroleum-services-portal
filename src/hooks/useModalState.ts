@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Client, SubAgreement, ServiceTicket, CallOutJob, DailyServiceLog } from '../types';
+import { Client, SubAgreement, ServiceTicket, CallOutJob, DailyServiceLog, User } from '../types';
 
 export type ModalType = 
   | 'addClient' 
@@ -10,6 +10,7 @@ export type ModalType =
   | 'editTicket' 
   | 'viewTicket' 
   | 'addUser' 
+  | 'editUser'
   | 'addJob' 
   | 'editJob' 
   | 'addSimpleLog' 
@@ -32,6 +33,7 @@ export const useModalState = () => {
   const [editingJob, setEditingJob] = useState<CallOutJob | null>(null);
   const [editingLog, setEditingLog] = useState<DailyServiceLog | null>(null);
   const [viewingLog, setViewingLog] = useState<DailyServiceLog | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const handleOpenEditClientModal = (client: Client) => {
     setEditingClient(client);
@@ -76,6 +78,11 @@ export const useModalState = () => {
     setModalType('viewLog');
   };
 
+  const handleOpenEditUserModal = (user: User) => {
+    setEditingUser(user);
+    setModalType('editUser');
+  };
+
   const handleCloseModal = () => {
     setModalType(null);
     setEditingClient(null);
@@ -85,6 +92,7 @@ export const useModalState = () => {
     setEditingJob(null);
     setEditingLog(null);
     setViewingLog(null);
+    setEditingUser(null);
   };
 
   const getModalTitle = () => {
@@ -105,6 +113,7 @@ export const useModalState = () => {
       case 'editLog': return `Edit Daily Service Log #${editingLog?.logNumber}`;
       case 'viewLog': return `Details for Log #${viewingLog?.logNumber}`;
       case 'addIssue': return 'Report New Ticket Issue';
+      case 'editUser': return `Edit User: ${editingUser?.name}`;
       default: return '';
     }
   };
@@ -119,6 +128,7 @@ export const useModalState = () => {
     editingJob,
     editingLog,
     viewingLog,
+    editingUser,
     handleOpenEditClientModal,
     handleOpenEditAgreementModal,
     handleOpenEditTicketModal,
@@ -128,6 +138,7 @@ export const useModalState = () => {
     handleOpenFullLogModal,
     handleOpenEditLogModal,
     handleOpenViewLogModal,
+    handleOpenEditUserModal,
     handleCloseModal,
     getModalTitle,
   };

@@ -272,17 +272,76 @@ export const AddServiceTicketForm: React.FC<AddServiceTicketFormProps> = ({ clie
     );
 };
 
-export const AddUserForm = ({ onSave, onCancel }: { onSave: (data: any) => void, onCancel: () => void }) => {
-    const [formData, setFormData] = useState({ name: '', email: '', role: 'User' as UserRole });
+interface AddUserFormProps {
+  onSave: (data: any) => void;
+  onCancel: () => void;
+  initialData?: User | null;
+  availableRoles?: string[];
+}
+
+export const AddUserForm: React.FC<AddUserFormProps> = ({ onSave, onCancel, initialData = null, availableRoles = ['User', 'Manager', 'Admin'] }) => {
+    const [formData, setFormData] = useState({
+        name: initialData?.name || '',
+        email: initialData?.email || '',
+        password: '',
+        password_confirmation: '',
+        role: initialData?.role || 'User',
+        status: initialData?.status || 'pending'
+    });
+    const [avatar, setAvatar] = useState<File | null>(null);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setFormData({ ...formData, [e.target.name]: e.target.value });
-    const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onSave(formData); };
+    const handleAvatarChange = (file: File | null) => setAvatar(file);
+    
+    const handleSubmit = (e: React.FormEvent) => { 
+        e.preventDefault(); 
+        onSave({
+            ...formData,
+            avatar: avatar
+        }); 
+    };
 
     return (
         <form onSubmit={handleSubmit}>
-            <FormRow><Label>Full Name</Label><Input name="name" value={formData.name} onChange={handleChange} required /></FormRow>
-            <FormRow><Label>Email Address</Label><Input type="email" name="email" value={formData.email} onChange={handleChange} required /></FormRow>
-            <FormRow><Label>Role</Label><Select name="role" value={formData.role} onChange={handleChange} required>{(['Admin', 'Manager', 'User'] as UserRole[]).map(r => <option key={r} value={r}>{r}</option>)}</Select></FormRow>
-            <FormActions onCancel={onCancel} />
+            <FormSection title="User Information">
+                <FormRow><Label>Name</Label><Input name="name" value={formData.name} onChange={handleChange} required /></FormRow>
+                <FormRow><Label>Email</Label><Input type="email" name="email" value={formData.email} onChange={handleChange} required /></FormRow>
+                {!initialData && (
+                    <>
+                        <FormRow><Label>Password</Label><Input type="password" name="password" value={formData.password} onChange={handleChange} required /></FormRow>
+                        <FormRow><Label>Confirm Password</Label><Input type="password" name="password_confirmation" value={formData.password_confirmation} onChange={handleChange} required /></FormRow>
+                    </>
+                )}
+                <FormRow>
+                    <Label>Role</Label>
+                    <Select name="role" value={formData.role} onChange={handleChange} required>
+                        {availableRoles.map(role => (
+                            <option key={role} value={role}>{role}</option>
+                        ))}
+                    </Select>
+                </FormRow>
+                {initialData && (
+                    <FormRow>
+                        <Label>Status</Label>
+                        <Select name="status" value={formData.status} onChange={handleChange} required>
+                            <option value="pending">Pending</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </Select>
+                    </FormRow>
+                )}
+                <FormRow>
+                    <Label>Avatar (Optional)</Label>
+                    <FileInput 
+                        onFileChange={handleAvatarChange} 
+                        fileName={avatar?.name}
+                        label="Upload Avatar"
+                        accept="image/*"
+                        placeholderText="JPG, PNG up to 5MB"
+                    />
+                </FormRow>
+            </FormSection>
+            <FormActions onCancel={onCancel} onSaveLabel={initialData ? "Update User" : "Create User"} />
         </form>
     );
 };
