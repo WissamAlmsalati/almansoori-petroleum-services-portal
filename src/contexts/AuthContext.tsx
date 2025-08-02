@@ -1,22 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../types';
-import authService from '../services/authService';
-import { useMessages } from './MessageContext';
+import authService, { User } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  logout: () => void;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -29,83 +27,71 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { showSuccess, showError } = useMessages();
 
-  // التحقق من وجود token عند تحميل التطبيق
+  // Check if user is authenticated on app startup
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (authService.isAuthenticated()) {
-          const storedUser = authService.getStoredUser();
-          if (storedUser) {
-            setUser(storedUser);
-            // التحقق من صحة token مع الخادم
-            try {
-              const response = await authService.getCurrentUser();
-              if (response.success && response.data) {
-                setUser(response.data);
-              }
-            } catch (error) {
-              // إذا فشل في الحصول على بيانات المستخدم، نقوم بتسجيل الخروج
-              await logout();
-            }
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Initialize auth service
+      authService.initializeAuth();
+      
+      // Check if user is authenticated
+      if (authService.isAuthenticated()) {
+        // Get stored user data
+        const storedUser = authService.getUser();
+        if (storedUser) {
+          setUser(storedUser);
+        } else {
+          // Try to get current user from API
+          const currentUser = await authService.getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+          } else {
+            // Invalid token, logout
+            authService.logout();
+            setUser(null);
           }
         }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-      } finally {
-        setIsLoading(false);
+      } else {
+        setUser(null);
       }
-    };
-
-    initAuth();
-  }, []);
+    } catch (error) {
+      console.error('Auth check error:', error);
+      authService.logout();
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
+      
       const response = await authService.login({ email, password });
       
-      if (response.success && response.data.user) {
+      if (response.success && response.data) {
         setUser(response.data.user);
-        showSuccess(response.message || 'تم تسجيل الدخول بنجاح');
         return true;
       } else {
-        showError('فشل في تسجيل الدخول');
         return false;
       }
-    } catch (error: any) {
-      showError(error.message || 'حدث خطأ أثناء تسجيل الدخول');
+    } catch (error) {
+      console.error('Login error:', error);
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      await authService.logout();
-      setUser(null);
-      showSuccess('تم تسجيل الخروج بنجاح');
-    } catch (error: any) {
-      // حتى لو فشل الطلب، نقوم بتسجيل الخروج محلياً
-      setUser(null);
-      showError(error.message || 'حدث خطأ أثناء تسجيل الخروج');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const refreshUser = async (): Promise<void> => {
-    try {
-      const response = await authService.getCurrentUser();
-      if (response.success && response.data) {
-        setUser(response.data);
-      }
-    } catch (error: any) {
-      showError(error.message || 'فشل في تحديث بيانات المستخدم');
-    }
+  const logout = () => {
+    authService.logout();
+    setUser(null);
   };
 
   const value: AuthContextType = {
@@ -114,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     login,
     logout,
-    refreshUser,
+    checkAuth,
   };
 
   return (

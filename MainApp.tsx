@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from './src/contexts/AuthContext';
 
 // Components
 import Sidebar from './src/components/Sidebar';
@@ -41,6 +42,7 @@ import { getDslExcelHtml, downloadExcel } from './src/utils/excelUtils';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('Dashboard');
+  const { user, logout } = useAuth();
   
   // Use custom hooks for data and modal state management
   const {
@@ -51,7 +53,7 @@ const App: React.FC = () => {
     jobs,
     logs,
     issues,
-    combinedDocuments,
+    documents,
     loading,
     setUsers,
     setTickets,
@@ -73,6 +75,12 @@ const App: React.FC = () => {
     handleGenerateServiceTicket,
     handleSaveTicketIssue,
     handleDeleteTicketIssue,
+    handleUploadDocument,
+    handleBulkUploadDocuments,
+    handleUpdateDocument,
+    handleDeleteDocument,
+    handleBulkDeleteDocuments,
+    handleDownloadDocument,
     openIssueCount,
     activeTicketCount,
   } = useAppData();
@@ -216,7 +224,7 @@ const App: React.FC = () => {
           agreements={agreements} 
           openIssueCount={openIssueCount} 
           activeTicketCount={activeTicketCount}
-          documentCount={combinedDocuments.length}
+          documentCount={documents.length}
         />;
       case 'Clients':
         return <Clients 
@@ -270,16 +278,25 @@ const App: React.FC = () => {
       case 'Ticket Issues':
         return <TicketIssues issues={issues} tickets={tickets} onAdd={() => setModalType('addIssue')} onDelete={handleDeleteIssue} />;
       case 'Document Archive':
-        return <DocumentArchive documents={combinedDocuments} clients={clients} />;
-      default:
-        return <Dashboard 
+        return <DocumentArchive 
+          documents={documents} 
           clients={clients}
-          tickets={tickets} 
-          agreements={agreements}
-          openIssueCount={openIssueCount} 
-          activeTicketCount={activeTicketCount}
-          documentCount={combinedDocuments.length}
+          onUploadDocument={handleUploadDocument}
+          onBulkUploadDocuments={handleBulkUploadDocuments}
+          onUpdateDocument={handleUpdateDocument}
+          onDeleteDocument={handleDeleteDocument}
+          onBulkDeleteDocuments={handleBulkDeleteDocuments}
+          onDownloadDocument={handleDownloadDocument}
         />;
+              default:
+          return <Dashboard 
+            clients={clients}
+            tickets={tickets} 
+            agreements={agreements}
+            openIssueCount={openIssueCount} 
+            activeTicketCount={activeTicketCount}
+            documentCount={documents.length}
+          />;
     }
   };
   
@@ -289,7 +306,7 @@ const App: React.FC = () => {
     <div className="flex h-screen bg-slate-50 font-sans">
       <Sidebar activeView={activeView} setActiveView={setActiveView} />
       <div className="flex-1 flex flex-col ml-64">
-        <Header activeView={activeView} />
+        <Header activeView={activeView} user={user} onLogout={logout} />
         <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
           {renderContent()}
         </main>

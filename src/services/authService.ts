@@ -1,7 +1,7 @@
 import api from './api';
-import { User } from '../types';
 
-export interface LoginRequest {
+// Types for Authentication
+export interface LoginCredentials {
   email: string;
   password: string;
 }
@@ -9,151 +9,159 @@ export interface LoginRequest {
 export interface LoginResponse {
   success: boolean;
   data: {
-    user: User;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+      role: string;
+    };
     token: string;
     token_type: string;
+    expires_in: number;
   };
   message: string;
 }
 
-export interface RegisterRequest {
+export interface User {
+  id: number;
   name: string;
   email: string;
-  password: string;
-  role: 'Admin' | 'Manager' | 'User';
-}
-
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  message: string;
-  error?: {
-    code: string;
-    message: string;
-    details?: Array<{
-      field: string;
-      message: string;
-    }>;
-  };
+  role: string;
 }
 
 class AuthService {
-  /**
-   * تسجيل الدخول
-   */
-  async login(credentials: LoginRequest): Promise<LoginResponse> {
-    try {
-      const response = await api.post<LoginResponse>('/auth/login', credentials);
-      
-      if (response.data.success && response.data.data.token) {
-        // حفظ token و user data في localStorage
-        localStorage.setItem('auth_token', response.data.data.token);
-        localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
-      }
-      
-      return response.data;
-    } catch (error: any) {
-      throw this.handleError(error);
-    }
-  }
+  private tokenKey = 'auth_token';
+  private userKey = 'auth_user';
 
-  /**
-   * تسجيل مستخدم جديد (Admin only)
-   */
-  async register(userData: RegisterRequest): Promise<ApiResponse<User>> {
-    try {
-      const response = await api.post<ApiResponse<User>>('/auth/register', userData);
-      return response.data;
-    } catch (error: any) {
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * تسجيل الخروج
-   */
-  async logout(): Promise<ApiResponse> {
-    try {
-      const response = await api.post<ApiResponse>('/auth/logout');
-      
-      // إزالة البيانات من localStorage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      
-      return response.data;
-    } catch (error: any) {
-      // حتى لو فشل الطلب، نزيل البيانات من localStorage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * الحصول على بيانات المستخدم الحالي
-   */
-  async getCurrentUser(): Promise<ApiResponse<User>> {
-    try {
-      const response = await api.get<ApiResponse<User>>('/auth/me');
-      
-      if (response.data.success && response.data.data) {
-        // تحديث بيانات المستخدم في localStorage
-        localStorage.setItem('user_data', JSON.stringify(response.data.data));
-      }
-      
-      return response.data;
-    } catch (error: any) {
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * التحقق من وجود token صالح
-   */
-  isAuthenticated(): boolean {
-    const token = localStorage.getItem('auth_token');
-    return !!token;
-  }
-
-  /**
-   * الحصول على بيانات المستخدم من localStorage
-   */
-  getStoredUser(): User | null {
-    const userData = localStorage.getItem('user_data');
-    if (userData) {
-      try {
-        return JSON.parse(userData) as User;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * الحصول على token من localStorage
-   */
+  // Get token from localStorage
   getToken(): string | null {
-    return localStorage.getItem('auth_token');
+    return localStorage.getItem(this.tokenKey);
   }
 
-  /**
-   * معالجة الأخطاء
-   */
-  private handleError(error: any): Error {
-    if (error.response?.data) {
-      const errorData = error.response.data;
-      if (errorData.error) {
-        return new Error(errorData.error.message || errorData.message || 'حدث خطأ غير متوقع');
+  // Set token in localStorage
+  setToken(token: string): void {
+    localStorage.setItem(this.tokenKey, token);
+  }
+
+  // Remove token from localStorage
+  removeToken(): void {
+    localStorage.removeItem(this.tokenKey);
+  }
+
+  // Get user from localStorage
+  getUser(): User | null {
+    const userStr = localStorage.getItem(this.userKey);
+    return userStr ? JSON.parse(userStr) : null;
+  }
+
+  // Set user in localStorage
+  setUser(user: User): void {
+    localStorage.setItem(this.userKey, JSON.stringify(user));
+  }
+
+  // Remove user from localStorage
+  removeUser(): void {
+    localStorage.removeItem(this.userKey);
+  }
+
+  // Check if user is authenticated
+  isAuthenticated(): boolean {
+    return !!this.getToken();
+  }
+
+  // Login user
+  async login(credentials: LoginCredentials): Promise<LoginResponse> {
+    try {
+      console.log('Logging in with credentials:', credentials);
+      
+      const response = await api.post('/auth/login', credentials);
+      console.log('Login response:', response);
+      
+      const loginData = response.data;
+      
+      if (loginData.success && loginData.data) {
+        // Save token and user data
+        this.setToken(loginData.data.token);
+        this.setUser(loginData.data.user);
+        
+        // Update API default headers with new token
+        this.updateApiHeaders(loginData.data.token);
       }
-      return new Error(errorData.message || 'حدث خطأ غير متوقع');
+      
+      return loginData;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
+  }
+
+  // Logout user
+  logout(): void {
+    // Remove token and user data
+    this.removeToken();
+    this.removeUser();
     
-    if (error.message) {
-      return new Error(error.message);
+    // Clear API default headers
+    this.clearApiHeaders();
+    
+    // Redirect to login page
+    window.location.href = '/';
+  }
+
+  // Update API headers with token
+  updateApiHeaders(token: string): void {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+
+  // Clear API headers
+  clearApiHeaders(): void {
+    delete api.defaults.headers.common['Authorization'];
+  }
+
+  // Initialize auth state (call this on app startup)
+  initializeAuth(): void {
+    const token = this.getToken();
+    if (token) {
+      this.updateApiHeaders(token);
     }
-    
-    return new Error('حدث خطأ في الاتصال بالخادم');
+  }
+
+  // Refresh token (if needed)
+  async refreshToken(): Promise<boolean> {
+    try {
+      const response = await api.post('/auth/refresh');
+      const data = response.data;
+      
+      if (data.success && data.data && data.data.token) {
+        this.setToken(data.data.token);
+        this.updateApiHeaders(data.data.token);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      this.logout();
+      return false;
+    }
+  }
+
+  // Get current user info
+  async getCurrentUser(): Promise<User | null> {
+    try {
+      const response = await api.get('/auth/me');
+      const data = response.data;
+      
+      if (data.success && data.data) {
+        this.setUser(data.data);
+        return data.data;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Get current user error:', error);
+      return null;
+    }
   }
 }
 

@@ -1,9 +1,9 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
-// Laravel backend base URL - يمكن تغييرها حسب الحاجة
-const BASE_URL = 'http://localhost:8000/api';
+// Laravel backend base URL
+const BASE_URL = 'http://127.0.0.1:8001/api';
 
-// إنشاء axios instance
+// Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
@@ -13,7 +13,7 @@ const api: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor لإضافة token إلى كل request
+// Request interceptor to add token to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
@@ -27,17 +27,17 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor لمعالجة الاستجابات والأخطاء
+// Response interceptor to handle responses and errors
 api.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
   },
   (error: AxiosError) => {
-    // إذا كان الخطأ 401 (Unauthorized)، نقوم بإزالة token وإعادة توجيه للLogin
+    // If error is 401 (Unauthorized), remove token and redirect to login
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      window.location.href = '/login';
+      localStorage.removeItem('auth_user');
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }

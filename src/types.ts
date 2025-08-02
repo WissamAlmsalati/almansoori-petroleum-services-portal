@@ -156,3 +156,25 @@ export interface CombinedDocument {
   file: File;
   sourceName: string;
 }
+
+export interface DocumentArchive {
+  id: string;
+  title: string;
+  description?: string;
+  category: string;
+  tags: string[];
+  clientId: string;
+  filePath: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  isPublic: boolean;
+  expiryDate?: string;
+  downloadCount: number;
+  createdAt?: string;
+  updatedAt?: string;
+  client?: {
+    id: number;
+    name: string;
+  };
+}

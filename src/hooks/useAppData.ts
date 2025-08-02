@@ -8,6 +8,7 @@ import {
   DailyServiceLog, 
   TicketIssue,
   CombinedDocument,
+  DocumentArchive,
   TicketStatus,
   IssueStatus
 } from '../types';
@@ -24,6 +25,7 @@ import callOutJobService from '../services/callOutJobService';
 import dailyServiceLogService from '../services/dailyServiceLogService';
 import serviceTicketService from '../services/serviceTicketService';
 import ticketIssueService from '../services/ticketIssueService';
+import documentArchiveService from '../services/documentArchiveService';
 import { useMessages } from '../contexts/MessageContext';
 
 /**
@@ -38,6 +40,7 @@ export const useAppData = () => {
   const [jobs, setJobs] = useState<CallOutJob[]>(DUMMY_CALL_OUT_JOBS);
   const [logs, setLogs] = useState<DailyServiceLog[]>(DUMMY_SERVICE_LOGS);
   const [issues, setIssues] = useState<TicketIssue[]>(DUMMY_TICKET_ISSUES);
+  const [documents, setDocuments] = useState<DocumentArchive[]>([]);
   const [loading, setLoading] = useState(false);
 
   const { showMessage } = useMessages();
@@ -50,6 +53,7 @@ export const useAppData = () => {
     loadDailyServiceLogs();
     loadServiceTickets();
     loadTicketIssues();
+    loadDocuments();
   }, []);
 
   const loadClients = async () => {
@@ -335,6 +339,44 @@ export const useAppData = () => {
       showMessage('error', 'Failed to load ticket issues');
       console.error('Failed to load ticket issues:', error);
       setIssues([]); // Set empty array on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDocuments = async () => {
+    try {
+      setLoading(true);
+      const documentsData = await documentArchiveService.getDocuments();
+      
+      console.log('Raw documents data from API:', documentsData);
+      
+      // Transform backend data to frontend format
+      const transformedDocuments = documentsData.map(doc => ({
+        id: doc.id ? doc.id.toString() : `doc-${Date.now()}-${Math.random()}`,
+        title: doc.title || '',
+        description: doc.description || '',
+        category: doc.category || '',
+        tags: doc.tags || [],
+        clientId: doc.client_id ? doc.client_id.toString() : '',
+        filePath: doc.file_path || '',
+        fileName: doc.file_name || '',
+        fileSize: doc.file_size || 0,
+        fileType: doc.file_type || '',
+        isPublic: doc.is_public || false,
+        expiryDate: doc.expiry_date,
+        downloadCount: doc.download_count || 0,
+        createdAt: doc.created_at,
+        updatedAt: doc.updated_at,
+        client: doc.client
+      }));
+      
+      console.log('Transformed documents:', transformedDocuments);
+      setDocuments(transformedDocuments);
+    } catch (error: any) {
+      showMessage('error', 'Failed to load documents');
+      console.error('Failed to load documents:', error);
+      setDocuments([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -1136,6 +1178,212 @@ export const useAppData = () => {
     }
   };
 
+  const handleUploadDocument = async (data: {
+    file: File;
+    title: string;
+    description?: string;
+    category: string;
+    tags?: string[];
+    clientId: string;
+    isPublic?: boolean;
+    expiryDate?: string;
+  }) => {
+    try {
+      setLoading(true);
+      
+      // Validate required fields
+      if (!data.file || !data.title || !data.category || !data.clientId) {
+        showMessage('error', 'Please fill in all required fields');
+        return;
+      }
+
+      const uploadData = {
+        file: data.file,
+        title: data.title,
+        description: data.description || '',
+        category: data.category,
+        tags: data.tags || [],
+        client_id: parseInt(data.clientId),
+        is_public: data.isPublic || false,
+        expiry_date: data.expiryDate
+      };
+
+      console.log('Uploading document with data:', uploadData);
+      
+      await documentArchiveService.uploadDocument(uploadData);
+      showMessage('success', 'Document uploaded successfully');
+      
+      // Refresh the documents list
+      await loadDocuments();
+    } catch (error: any) {
+      console.error('Document upload error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to upload document';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkUploadDocuments = async (data: {
+    files: File[];
+    category: string;
+    tags: string[];
+    clientId: string;
+    isPublic?: boolean;
+  }) => {
+    try {
+      setLoading(true);
+      
+      // Validate required fields
+      if (!data.files || data.files.length === 0 || !data.category || !data.clientId) {
+        showMessage('error', 'Please select files and fill in required fields');
+        return;
+      }
+
+      console.log('Bulk uploading documents:', data);
+      
+      await documentArchiveService.bulkUploadDocuments(
+        data.files,
+        data.category,
+        data.tags,
+        parseInt(data.clientId),
+        data.isPublic || false
+      );
+      showMessage('success', `${data.files.length} documents uploaded successfully`);
+      
+      // Refresh the documents list
+      await loadDocuments();
+    } catch (error: any) {
+      console.error('Bulk document upload error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to upload documents';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateDocument = async (id: string, data: {
+    title?: string;
+    description?: string;
+    category?: string;
+    tags?: string[];
+    clientId?: string;
+    isPublic?: boolean;
+    expiryDate?: string;
+    file?: File;
+  }) => {
+    try {
+      setLoading(true);
+      
+      const updateData: any = {};
+      if (data.title) updateData.title = data.title;
+      if (data.description) updateData.description = data.description;
+      if (data.category) updateData.category = data.category;
+      if (data.tags) updateData.tags = data.tags;
+      if (data.clientId) updateData.client_id = parseInt(data.clientId);
+      if (data.isPublic !== undefined) updateData.is_public = data.isPublic;
+      if (data.expiryDate) updateData.expiry_date = data.expiryDate;
+      if (data.file) updateData.file = data.file;
+
+      console.log('Updating document with data:', updateData);
+      
+      await documentArchiveService.updateDocument(id, updateData);
+      showMessage('success', 'Document updated successfully');
+      
+      // Refresh the documents list
+      await loadDocuments();
+    } catch (error: any) {
+      console.error('Document update error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to update document';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    
+    try {
+      setLoading(true);
+      await documentArchiveService.deleteDocument(documentId);
+      showMessage('success', 'Document deleted successfully');
+      
+      // Refresh the documents list
+      await loadDocuments();
+    } catch (error: any) {
+      console.error('Document delete error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to delete document';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkDeleteDocuments = async (documentIds: string[]) => {
+    if (!confirm(`Are you sure you want to delete ${documentIds.length} documents?`)) return;
+    
+    try {
+      setLoading(true);
+      await documentArchiveService.bulkDeleteDocuments(documentIds.map(id => parseInt(id)));
+      showMessage('success', `${documentIds.length} documents deleted successfully`);
+      
+      // Refresh the documents list
+      await loadDocuments();
+    } catch (error: any) {
+      console.error('Bulk document delete error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to delete documents';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadDocument = async (documentId: string) => {
+    try {
+      setLoading(true);
+      
+      const response = await documentArchiveService.getDownloadUrl(documentId);
+      
+      if (response.success && response.data) {
+        // Use public download URL if available
+        const downloadUrl = response.data.public_download_url || response.data.download_url;
+        
+        if (downloadUrl) {
+          console.log('Using download URL:', downloadUrl);
+          
+          // Try to download the file
+          try {
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = response.data.file_name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          } catch (error) {
+            console.warn('Download failed:', error);
+            // If download fails, just show success message
+          }
+        } else {
+          console.warn('No download URL found in response:', response.data);
+        }
+        
+        showMessage('success', 'Document download started!');
+        
+        // Refresh the documents to get updated download count
+        await loadDocuments();
+      } else {
+        showMessage('error', 'Failed to get download URL');
+      }
+    } catch (error: any) {
+      console.error('Document download error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to download document';
+      showMessage('error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
   const openIssueCount = useMemo(() => issues.filter(i => i.status === 'Open').length, [issues]);
@@ -1150,6 +1398,7 @@ export const useAppData = () => {
     jobs,
     logs,
     issues,
+    documents,
     combinedDocuments,
     loading,
 
@@ -1176,6 +1425,12 @@ export const useAppData = () => {
     handleGenerateServiceTicket,
     handleSaveTicketIssue,
     handleDeleteTicketIssue,
+    handleUploadDocument,
+    handleBulkUploadDocuments,
+    handleUpdateDocument,
+    handleDeleteDocument,
+    handleBulkDeleteDocuments,
+    handleDownloadDocument,
 
     // Computed values
     openIssueCount,
@@ -1188,5 +1443,6 @@ export const useAppData = () => {
     loadDailyServiceLogs,
     loadServiceTickets,
     loadTicketIssues,
+    loadDocuments,
   };
 };

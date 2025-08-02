@@ -43,10 +43,14 @@ const Login: React.FC = () => {
     try {
       const success = await login(email, password);
       if (success) {
-        // سيتم إعادة التوجيه تلقائياً عبر useEffect
+        showInfo('Login successful! Redirecting...', 'Success');
+        // Redirect will happen automatically via useEffect
+      } else {
+        showError('Invalid email or password');
       }
-    } catch (error) {
-      // تم التعامل مع الخطأ في AuthContext
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      showError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
