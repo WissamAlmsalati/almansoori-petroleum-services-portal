@@ -102,12 +102,13 @@ const CallOutJobs: React.FC<CallOutJobsProps> = ({ jobs, clients, onAdd, onEdit,
             ))}
             {paginatedJobs.length === 0 && (
                 <tr>
-                    <td colSpan={9} className="text-center py-8 text-slate-500 text-xs">
-                      <div className="flex flex-col items-center">
-                        <svg className="w-8 h-8 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <td colSpan={9} className="text-center py-12 text-slate-500">
+                      <div className="flex flex-col items-center space-y-2">
+                        <svg className="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6" />
                         </svg>
-                        <span className="font-medium">No call-out jobs found.</span>
+                        <div className="text-lg font-medium">No call-out jobs found</div>
+                        <div className="text-sm">Get started by adding your first call-out job</div>
                       </div>
                     </td>
                 </tr>

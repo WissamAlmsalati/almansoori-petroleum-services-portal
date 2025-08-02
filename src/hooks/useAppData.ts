@@ -13,12 +13,7 @@ import {
   TicketStatus,
   IssueStatus
 } from '../types';
-import { 
-  DUMMY_SERVICE_TICKETS, 
-  DUMMY_CALL_OUT_JOBS, 
-  DUMMY_SERVICE_LOGS, 
-  DUMMY_TICKET_ISSUES 
-} from '../constants';
+
 import clientService from '../services/clientService';
 import subAgreementService from '../services/subAgreementService';
 import callOutJobService from '../services/callOutJobService';
@@ -37,10 +32,10 @@ export const useAppData = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [agreements, setAgreements] = useState<SubAgreement[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [tickets, setTickets] = useState<ServiceTicket[]>(DUMMY_SERVICE_TICKETS);
-  const [jobs, setJobs] = useState<CallOutJob[]>(DUMMY_CALL_OUT_JOBS);
-  const [logs, setLogs] = useState<DailyServiceLog[]>(DUMMY_SERVICE_LOGS);
-  const [issues, setIssues] = useState<TicketIssue[]>(DUMMY_TICKET_ISSUES);
+  const [tickets, setTickets] = useState<ServiceTicket[]>([]);
+  const [jobs, setJobs] = useState<CallOutJob[]>([]);
+  const [logs, setLogs] = useState<DailyServiceLog[]>([]);
+  const [issues, setIssues] = useState<TicketIssue[]>([]);
   const [documents, setDocuments] = useState<DocumentArchive[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -63,62 +58,15 @@ export const useAppData = () => {
       setLoading(true);
       const data = await clientService.getClients();
       
-      // If no data from API, use mock data for testing
-      if (!data || !data.clients || !Array.isArray(data.clients) || data.clients.length === 0) {
-        const mockClients = [
-          {
-            id: '1',
-            name: 'Almansoori Petroleum',
-            logoUrl: '',
-            contacts: []
-          },
-          {
-            id: '2',
-            name: 'ADNOC',
-            logoUrl: '',
-            contacts: []
-          },
-          {
-            id: '3',
-            name: 'ExxonMobil',
-            logoUrl: '',
-            contacts: []
-          }
-        ];
-        
-        console.log('Using mock clients for testing');
-        setClients(mockClients);
-        return;
+      if (data && data.clients && Array.isArray(data.clients)) {
+        setClients(data.clients);
+      } else {
+        setClients([]);
       }
-      
-      setClients(data.clients);
     } catch (error) {
       showMessage('error', 'Failed to load clients');
       console.error('Failed to load clients:', error);
-      
-      // Use mock data on error
-      const mockClients = [
-        {
-          id: '1',
-          name: 'Almansoori Petroleum',
-          logoUrl: '',
-          contacts: []
-        },
-        {
-          id: '2',
-          name: 'ADNOC',
-          logoUrl: '',
-          contacts: []
-        },
-        {
-          id: '3',
-          name: 'ExxonMobil',
-          logoUrl: '',
-          contacts: []
-        }
-      ];
-      
-      setClients(mockClients);
+      setClients([]);
     } finally {
       setLoading(false);
     }
@@ -148,31 +96,7 @@ export const useAppData = () => {
       // Check if data is an array
       if (!Array.isArray(data)) {
         console.error('Expected array but got:', typeof data, data);
-        
-        // If no data from API, use mock data for testing
-        const mockJobs = [
-          {
-            id: '1',
-            clientId: '1',
-            jobName: 'Emergency Pipeline Maintenance',
-            workOrderNumber: 'WO-2025-001',
-            startDate: '2025-01-20',
-            endDate: '2025-01-25',
-            documents: []
-          },
-          {
-            id: '2',
-            clientId: '2',
-            jobName: 'Well Intervention RW-123',
-            workOrderNumber: 'WO-2025-002',
-            startDate: '2025-01-22',
-            endDate: '2025-01-28',
-            documents: []
-          }
-        ];
-        
-        console.log('Using mock data for testing');
-        setJobs(mockJobs);
+        setJobs([]);
         return;
       }
       
@@ -498,14 +422,14 @@ export const useAppData = () => {
       
       // Transform frontend data to backend format
       const backendData = {
-        client_id: parseInt(data.clientId),
-        job_name: data.jobName,
-        work_order_number: data.workOrderNumber,
-        description: data.description,
-        priority: data.priority,
-        status: data.status,
-        start_date: data.startDate,
-        end_date: data.endDate
+        client_id: parseInt(data.clientId!),
+        job_name: data.jobName || '',
+        work_order_number: data.workOrderNumber || '',
+        description: data.description || '',
+        priority: data.priority || 'medium',
+        status: data.status || 'scheduled',
+        start_date: data.startDate || '',
+        end_date: data.endDate || ''
       };
       
       console.log('Backend data being sent:', backendData);
@@ -515,11 +439,11 @@ export const useAppData = () => {
         // Transform backend response to frontend format
         const transformedJob = {
           id: updatedJob.id,
-          clientId: updatedJob.client_id.toString(),
-          jobName: updatedJob.job_name,
-          workOrderNumber: updatedJob.work_order_number,
-          startDate: updatedJob.start_date,
-          endDate: updatedJob.end_date,
+          clientId: updatedJob.client_id ? updatedJob.client_id.toString() : '',
+          jobName: updatedJob.job_name || '',
+          workOrderNumber: updatedJob.work_order_number || '',
+          startDate: updatedJob.start_date || '',
+          endDate: updatedJob.end_date || '',
           documents: updatedJob.documents || []
         };
         // Refresh the jobs from the server to get the latest data
@@ -530,11 +454,11 @@ export const useAppData = () => {
         // Transform backend response to frontend format
         const transformedJob = {
           id: newJob.id,
-          clientId: newJob.client_id.toString(),
-          jobName: newJob.job_name,
-          workOrderNumber: newJob.work_order_number,
-          startDate: newJob.start_date,
-          endDate: newJob.end_date,
+          clientId: newJob.client_id ? newJob.client_id.toString() : '',
+          jobName: newJob.job_name || '',
+          workOrderNumber: newJob.work_order_number || '',
+          startDate: newJob.start_date || '',
+          endDate: newJob.end_date || '',
           documents: newJob.documents || []
         };
         // Refresh the jobs from the server to get the latest data
@@ -560,31 +484,8 @@ export const useAppData = () => {
           showMessage('error', 'Validation error: Please check your input data');
         }
       } else {
-        // If API is not available, use mock data for testing
-        console.log('API not available, using mock data for testing');
-        
-        const mockJob = {
-          id: data.id || `job-${Date.now()}`,
-          clientId: data.clientId || '1',
-          jobName: data.jobName || '',
-          workOrderNumber: data.workOrderNumber || '',
-          description: data.description || '',
-          priority: data.priority || 'medium',
-          status: data.status || 'scheduled',
-          startDate: data.startDate || '',
-          endDate: data.endDate || '',
-          documents: []
-        };
-        
-        if (data.id) {
-          setJobs(prevJobs => prevJobs.map(job => 
-            job.id === data.id ? mockJob : job
-          ));
-          showMessage('success', 'Call-out job updated successfully (mock)');
-        } else {
-          setJobs(prev => [mockJob, ...prev]);
-          showMessage('success', 'Call-out job created successfully (mock)');
-        }
+        const errorMessage = error instanceof Error ? error.message : (data.id ? 'Failed to update call-out job' : 'Failed to create call-out job');
+        showMessage('error', errorMessage);
       }
     } finally {
       setLoading(false);
