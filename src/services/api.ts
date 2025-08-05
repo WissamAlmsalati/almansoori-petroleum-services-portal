@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // Laravel backend base URL
-const BASE_URL = 'http://127.0.0.1:8001/api';
+const BASE_URL = 'http://127.0.0.1:8000/api';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
