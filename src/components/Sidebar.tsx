@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View } from '../types';
+import { useAuthStore } from '../stores';
 import { 
     DashboardIcon, ClientsIcon, SubAgreementsIcon, CallOutJobsIcon, DailyServiceLogsIcon, 
     ServiceTicketsIcon, TicketIssuesIcon, DocumentArchiveIcon, UserManagementIcon, LogoutIcon 
@@ -24,6 +25,13 @@ const menuItems: { name: View; icon: React.ReactNode }[] = [
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
+  const { logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    // The App component will automatically redirect to login when user becomes null
+  };
+
   return (
     <aside className="w-64 bg-white text-brand-navy-900 flex flex-col border-r border-slate-200 fixed h-full">
       <div className="h-16 flex items-center justify-center border-b border-slate-200">
@@ -54,14 +62,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
         </ul>
       </nav>
       <div className="px-4 py-4 border-t border-slate-200">
-         <a
-            href="#"
-            onClick={(e) => e.preventDefault()}
-            className="flex items-center p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors duration-200"
+         <button
+            onClick={handleLogout}
+            className="w-full flex items-center p-2 rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors duration-200"
           >
             <span className="mr-3"><LogoutIcon /></span>
             Logout
-          </a>
+          </button>
       </div>
     </aside>
   );

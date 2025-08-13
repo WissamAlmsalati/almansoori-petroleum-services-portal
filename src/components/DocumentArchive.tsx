@@ -1,85 +1,40 @@
 
-import React, { useState, useMemo } from 'react';
-import { Client, DocumentArchive } from '../types';
+import React from 'react';
+import { useDocumentArchiveStore, useUIStore } from '../stores';
 import Pagination from './Pagination';
 
-interface DocumentArchiveProps {
-  documents: DocumentArchive[];
-  clients: Client[];
-  onUploadDocument: (data: {
-    file: File;
-    title: string;
-    description?: string;
-    category: string;
-    tags?: string[];
-    clientId: string;
-    isPublic?: boolean;
-    expiryDate?: string;
-  }) => Promise<void>;
-  onBulkUploadDocuments: (data: {
-    files: File[];
-    category: string;
-    tags: string[];
-    clientId: string;
-    isPublic?: boolean;
-  }) => Promise<void>;
-  onUpdateDocument: (id: string, data: {
-    title?: string;
-    description?: string;
-    category?: string;
-    tags?: string[];
-    clientId?: string;
-    isPublic?: boolean;
-    expiryDate?: string;
-    file?: File;
-  }) => Promise<void>;
-  onDeleteDocument: (id: string) => Promise<void>;
-  onBulkDeleteDocuments: (ids: string[]) => Promise<void>;
-  onDownloadDocument: (id: string) => Promise<void>;
-}
+const DocumentArchive: React.FC = () => {
+  const {
+    // State
+    clients,
+    selectedDocuments,
+    filters,
+    pagination,
+    isLoading,
+    error,
+    
+    // Actions
+    setSearchTerm,
+    setClientFilter,
+    setCategoryFilter,
+    setCurrentPage,
+    setItemsPerPage,
+    selectDocument,
+    deselectDocument,
+    selectAllDocuments,
+    deselectAllDocuments,
+    deleteDocument,
+    deleteMultipleDocuments,
+    
+    // Computed values
+    getFilteredDocuments,
+    getCategories,
+    getTotalItems,
+    getTotalPages,
+    getPaginatedDocuments,
+  } = useDocumentArchiveStore();
 
-const DocumentArchive: React.FC<DocumentArchiveProps> = ({ 
-  documents, 
-  clients,
-  onUploadDocument,
-  onBulkUploadDocuments,
-  onUpdateDocument,
-  onDeleteDocument,
-  onBulkDeleteDocuments,
-  onDownloadDocument
-}) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [clientFilter, setClientFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-
-  const filteredDocuments = useMemo(() => {
-    return documents.filter(doc => {
-      return (
-        (doc.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-         doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         doc.fileName.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (clientFilter === '' || doc.clientId === clientFilter) &&
-        (categoryFilter === '' || doc.category === categoryFilter)
-      );
-    });
-  }, [documents, searchTerm, clientFilter, categoryFilter]);
-
-  const categories = useMemo(() => [...new Set(documents.map(d => d.category))].sort(), [documents]);
-
-  // Pagination logic
-  const totalItems = filteredDocuments.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedDocuments = filteredDocuments.slice(startIndex, endIndex);
-
-  // Reset to first page when filters change
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, clientFilter, categoryFilter]);
+  const { addToast } = useUIStore();
 
   const formatBytes = (bytes: number, decimals = 2) => {
     if (bytes === 0) return '0 Bytes';
@@ -88,30 +43,95 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-  }
+  };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedDocuments(filteredDocuments.map(doc => doc.id));
+      selectAllDocuments();
     } else {
-      setSelectedDocuments([]);
+      deselectAllDocuments();
     }
   };
 
   const handleSelectDocument = (id: string, checked: boolean) => {
     if (checked) {
-      setSelectedDocuments(prev => [...prev, id]);
+      selectDocument(id);
     } else {
-      setSelectedDocuments(prev => prev.filter(docId => docId !== id));
+      deselectDocument(id);
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedDocuments.length > 0) {
-      await onBulkDeleteDocuments(selectedDocuments);
-      setSelectedDocuments([]);
+      try {
+        deleteMultipleDocuments(selectedDocuments);
+        addToast({
+          type: 'success',
+          message: `${selectedDocuments.length} document(s) deleted successfully`,
+        });
+      } catch (error) {
+        addToast({
+          type: 'error',
+          message: 'Failed to delete documents',
+        });
+      }
     }
   };
+
+  const handleDeleteDocument = async (id: string) => {
+    try {
+      deleteDocument(id);
+      addToast({
+        type: 'success',
+        message: 'Document deleted successfully',
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        message: 'Failed to delete document',
+      });
+    }
+  };
+
+  const handleDownloadDocument = async (_id: string) => {
+    try {
+      // TODO: Implement actual download logic
+      addToast({
+        type: 'success',
+        message: 'Download started',
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        message: 'Failed to download document',
+      });
+    }
+  };
+
+  const paginatedDocuments = getPaginatedDocuments();
+  const categories = getCategories();
+  const totalItems = getTotalItems();
+  const totalPages = getTotalPages();
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="text-center text-red-600">
+          <p>Error: {error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -135,24 +155,24 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
           type="text"
           placeholder="Search documents..."
           className="col-span-1 md:col-span-2 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-brand-blue-500 focus:border-brand-blue-500 sm:text-xs"
-          value={searchTerm}
+          value={filters.searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
         <select
           className="block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-blue-500 focus:border-brand-blue-500 sm:text-xs"
-          value={clientFilter}
+          value={filters.clientFilter}
           onChange={e => setClientFilter(e.target.value)}
         >
           <option value="">All Clients</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <select
           className="block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-blue-500 focus:border-brand-blue-500 sm:text-xs"
-          value={categoryFilter}
+          value={filters.categoryFilter}
           onChange={e => setCategoryFilter(e.target.value)}
         >
           <option value="">All Categories</option>
-          {categories.map(category => <option key={category} value={category}>{category}</option>)}
+          {categories.map((category: string) => <option key={category} value={category}>{category}</option>)}
         </select>
       </div>
 
@@ -164,7 +184,7 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
               <th scope="col" className="px-4 py-2">
                 <input
                   type="checkbox"
-                  checked={selectedDocuments.length === filteredDocuments.length && filteredDocuments.length > 0}
+                  checked={selectedDocuments.length === getFilteredDocuments().length && getFilteredDocuments().length > 0}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                   className="w-4 h-4 text-brand-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-brand-blue-500"
                 />
@@ -182,7 +202,7 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
             </tr>
           </thead>
           <tbody>
-            {paginatedDocuments.map(doc => (
+            {paginatedDocuments.map((doc: any) => (
               <tr key={doc.id} className="bg-white border-b hover:bg-slate-50">
                 <td className="px-4 py-2">
                   <input
@@ -193,7 +213,7 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
                   />
                 </td>
                 <td className="px-4 py-2 font-medium text-slate-900">{doc.title}</td>
-                <td className="px-4 py-2">{clients.find(c => c.id === doc.clientId)?.name || 'N/A'}</td>
+                <td className="px-4 py-2">{clients.find((c: any) => c.id === doc.clientId)?.name || 'N/A'}</td>
                 <td className="px-4 py-2">
                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                     {doc.category}
@@ -217,13 +237,13 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
                 </td>
                 <td className="px-4 py-2 text-right space-x-2">
                   <button 
-                    onClick={() => onDownloadDocument(doc.id)} 
+                    onClick={() => handleDownloadDocument(doc.id)} 
                     className="text-xs font-medium text-brand-blue-600 hover:underline"
                   >
                     Download
                   </button>
                   <button 
-                    onClick={() => onDeleteDocument(doc.id)} 
+                    onClick={() => handleDeleteDocument(doc.id)} 
                     className="text-xs font-medium text-red-600 hover:underline"
                   >
                     Delete
@@ -251,10 +271,10 @@ const DocumentArchive: React.FC<DocumentArchiveProps> = ({
       {/* Pagination */}
       {totalItems > 0 && (
         <Pagination
-          currentPage={currentPage}
+          currentPage={pagination.currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
+          itemsPerPage={pagination.itemsPerPage}
           onPageChange={setCurrentPage}
           onItemsPerPageChange={setItemsPerPage}
         />

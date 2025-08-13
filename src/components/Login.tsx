@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../stores';
 import { useMessages } from '../contexts/MessageContext';
 
 const Login: React.FC = () => {
@@ -8,13 +8,13 @@ const Login: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuthStore();
   const { showError, showInfo } = useMessages();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      window.location.href = '/';
+      // The App component will automatically show MainApp when user is authenticated
     }
   }, [isAuthenticated, isLoading]);
 
@@ -41,13 +41,9 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const success = await login(email, password);
-      if (success) {
-        showInfo('Login successful! Redirecting...', 'Success');
-        // Redirect will happen automatically via useEffect
-      } else {
-        showError('Invalid email or password');
-      }
+      await login(email, password);
+      showInfo('Login successful! Redirecting...', 'Success');
+      // Redirect will happen automatically via useEffect
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
       showError(errorMessage);
@@ -63,10 +59,10 @@ const Login: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-blue-700">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="bg-white p-8 rounded-lg shadow-lg">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </div>
@@ -75,12 +71,12 @@ const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-blue-700 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="bg-white rounded-lg shadow-xl p-8">
           {/* Logo and Title */}
           <div className="text-center">
-            <div className="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="mx-auto h-16 w-16 bg-brand-blue-600 rounded-full flex items-center justify-center">
               <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
@@ -94,18 +90,18 @@ const Login: React.FC = () => {
           </div>
 
           {/* Quick Login Info */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <div className="mt-6 p-4 bg-brand-blue-50 rounded-lg">
             <div className="flex items-center">
-              <svg className="h-5 w-5 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="h-5 w-5 text-brand-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
-              <span className="text-sm text-blue-700">
+              <span className="text-sm text-brand-blue-700">
                 Demo credentials are pre-loaded for testing
               </span>
             </div>
             <button
               onClick={handleQuickLogin}
-              className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+              className="mt-2 text-xs text-brand-blue-600 hover:text-brand-blue-800 underline"
             >
               Reload demo credentials
             </button>
@@ -127,7 +123,7 @@ const Login: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-blue-500 focus:border-brand-blue-500"
                     placeholder="admin@almansoori.com"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -151,7 +147,7 @@ const Login: React.FC = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 pr-10"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-blue-500 focus:border-brand-blue-500 pr-10"
                     placeholder="••••••••"
                   />
                   <button
@@ -175,7 +171,7 @@ const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-blue-600 hover:bg-brand-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting ? (
                   <>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from './src/contexts/AuthContext';
+
 
 // Components
 import Sidebar from './src/components/Sidebar';
@@ -42,7 +42,7 @@ import { getDslExcelHtml, downloadExcel } from './src/utils/excelUtils';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('Dashboard');
-  const { user, logout } = useAuth();
+
   
   // Use custom hooks for data and modal state management
   const {
@@ -292,16 +292,7 @@ const App: React.FC = () => {
       case 'Ticket Issues':
         return <TicketIssues issues={issues} tickets={tickets} onAdd={() => setModalType('addIssue')} onDelete={handleDeleteIssue} />;
       case 'Document Archive':
-        return <DocumentArchive 
-          documents={documents} 
-          clients={clients}
-          onUploadDocument={handleUploadDocument}
-          onBulkUploadDocuments={handleBulkUploadDocuments}
-          onUpdateDocument={handleUpdateDocument}
-          onDeleteDocument={handleDeleteDocument}
-          onBulkDeleteDocuments={handleBulkDeleteDocuments}
-          onDownloadDocument={handleDownloadDocument}
-        />;
+        return <DocumentArchive />;
               default:
           return <Dashboard 
             clients={clients}
@@ -320,7 +311,7 @@ const App: React.FC = () => {
     <div className="flex h-screen bg-slate-50 font-sans">
       <Sidebar activeView={activeView} setActiveView={setActiveView} />
       <div className="flex-1 flex flex-col ml-64">
-        <Header activeView={activeView} user={user} onLogout={logout} />
+        <Header activeView={activeView} />
         <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
           {renderContent()}
         </main>
