@@ -1,22 +1,29 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
-import Clients from './components/Clients';
-import SubAgreements from './components/SubAgreements';
+import Clients from '@/features/clients/Clients';
+import SubAgreements from '@/features/subAgreements/SubAgreements';
 import ServiceTickets, { getStatusColor } from './components/ServiceTickets';
 import UserManagement from './components/UserManagement';
 import TicketIssues from './components/TicketIssues';
 import DocumentArchive from './components/DocumentArchive';
 import DailyServiceLogs from './components/DailyServiceLogs';
-import CallOutJobs from './components/CallOutJobs';
+import CallOutJobs from '@/features/callOutJobs/CallOutJobs';
+import { callOutJobsService } from '@/features/callOutJobs/service';
 import Modal from './components/Modal';
 import { AddClientForm, AddSubAgreementForm, AddServiceTicketForm, AddUserForm, AddCallOutJobForm, AddFullDailyServiceLogForm, AddSimpleDailyServiceLogForm, AddTicketIssueForm, GenerateServiceTicketForm } from './components/AddForms';
 
+import Login from '@/features/auth/Login';
+import { useAuthStore } from '@/features/auth/store';
+import { clientService } from '@/features/clients/service';
+import { subAgreementsService } from '@/features/subAgreements/service';
+import { dailyLogsService } from '@/features/dailyLogs/service';
+
 import { View, Client, SubAgreement, User, ServiceTicket, TicketIssue, CallOutJob, DailyServiceLog, ContactPerson, PersonnelLogItem, EquipmentLogItem, CombinedDocument } from './types';
 import { 
-    DUMMY_CLIENTS, DUMMY_SUB_AGREEMENTS, DUMMY_USERS, DUMMY_SERVICE_TICKETS, 
+    DUMMY_SUB_AGREEMENTS, DUMMY_USERS, DUMMY_SERVICE_TICKETS, 
     DUMMY_CALL_OUT_JOBS, DUMMY_SERVICE_LOGS, DUMMY_TICKET_ISSUES
 } from './constants';
 
@@ -314,9 +321,121 @@ const DailyServiceLogDetailsView: React.FC<{ log: DailyServiceLog; clients: Clie
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('Dashboard');
+  const { token, user, hydrate, loading } = useAuthStore();
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  useEffect(() => {
+    if (token && user) {
+      setActiveView('Dashboard');
+    }
+  }, [token, user]);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      if (!user) return;
+      setClientsLoading(true);
+      setClientsError(null);
+      try {
+        const data = await clientService.list();
+        const mapped: Client[] = data.map((c: any) => ({
+          id: String(c.id),
+          name: c.name,
+          logoUrl: c.logo_url || '',
+          contacts: Array.isArray(c.contacts) ? c.contacts.map((ct: any) => ({
+            id: String(ct.id),
+            name: ct.name || '-',
+            email: ct.email || '',
+            phone: ct.phone || '',
+            position: ct.position || ''
+          })) : []
+        }));
+        setClients(mapped);
+      } catch (e) {
+        setClientsError('Failed to load clients');
+      } finally {
+        setClientsLoading(false);
+      }
+    };
+    fetchClients();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchSubAgreements = async () => {
+      if (!user) return;
+      try {
+        const data = await subAgreementsService.list();
+        const mapped: SubAgreement[] = data.map((s: any) => ({
+          id: String(s.id),
+          clientId: String(s.client_id),
+          name: s.name,
+          amount: Number(s.amount),
+          balance: Number(s.balance),
+          startDate: s.start_date ? String(s.start_date).split('T')[0] : '',
+          endDate: s.end_date ? String(s.end_date).split('T')[0] : '',
+          fileName: s.file_name || undefined,
+        }));
+        setAgreements(mapped);
+      } catch (e) {
+        // keep existing state
+      }
+    };
+    fetchSubAgreements();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      if (!user) return;
+      try {
+        const data = await callOutJobsService.list();
+        const mapped: CallOutJob[] = data.map((j: any) => ({
+          id: String(j.id),
+          clientId: String(j.client_id),
+          jobName: j.job_name,
+          workOrderNumber: j.work_order_number,
+          startDate: j.start_date ? String(j.start_date).split('T')[0] : '',
+          endDate: j.end_date ? String(j.end_date).split('T')[0] : '',
+          documents: [],
+        }));
+        setJobs(mapped);
+      } catch (e) {
+        // keep existing
+      }
+    };
+    fetchJobs();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchDailyLogs = async () => {
+      if (!user) return;
+      try {
+        const data = await dailyLogsService.list();
+        const mapped: DailyServiceLog[] = data.map((d: any) => ({
+          id: String(d.id),
+          logNumber: d.job_no || '',
+          clientId: String(d.client_id),
+          field: d.field,
+          well: d.well,
+          contract: d.contract,
+          jobNo: d.job_no,
+          date: d.date ? String(d.date).split('T')[0] : '',
+          linkedJobId: d.linked_job_id || undefined,
+          // Keep existing optional arrays untouched for now
+        }));
+        setLogs(mapped);
+      } catch (e) {
+        // keep existing
+      }
+    };
+    fetchDailyLogs();
+  }, [user]);
   
   // State for all data types
-  const [clients, setClients] = useState<Client[]>(DUMMY_CLIENTS);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientsLoading, setClientsLoading] = useState<boolean>(false);
+  const [clientsError, setClientsError] = useState<string | null>(null);
   const [agreements, setAgreements] = useState<SubAgreement[]>(DUMMY_SUB_AGREEMENTS);
   const [users, setUsers] = useState<User[]>(DUMMY_USERS);
   const [tickets, setTickets] = useState<ServiceTicket[]>(DUMMY_SERVICE_TICKETS);
@@ -391,53 +510,71 @@ const App: React.FC = () => {
 
 
   // --- SAVE HANDLERS ---
-  const handleSaveClient = (data: { id?: string, name: string; contacts: Omit<ContactPerson, 'id'>[]; logoFile: File | null }) => {
-    if (data.id) {
-        setClients(prevClients => prevClients.map(client => {
-            if (client.id === data.id) {
-                const existingLogoUrl = client.logoUrl;
-                return {
-                    ...client,
-                    name: data.name,
-                    logoFile: data.logoFile,
-                    logoUrl: data.logoFile ? URL.createObjectURL(data.logoFile) : existingLogoUrl,
-                    contacts: data.contacts.map((contact, index) => ({...contact, id: `con-${data.id}-${index}`}))
-                };
-            }
-            return client;
-        }));
-    } 
-    else {
-        const newClient: Client = { 
-          id: `cli-${Date.now()}`, 
-          name: data.name,
-          logoFile: data.logoFile,
-          logoUrl: data.logoFile ? URL.createObjectURL(data.logoFile) : `https://picsum.photos/seed/cli${Date.now()}/40/40`,
-          contacts: data.contacts.map((contact, index) => ({...contact, id: `con-${Date.now()}-${index}`}))
-        };
-        setClients(prev => [newClient, ...prev]);
+  const handleSaveClient = async (data: { id?: string, name: string; contacts: Omit<ContactPerson, 'id'>[]; logoFile: File | null }) => {
+    try {
+      if (data.id) {
+        const numericId = Number(data.id);
+        const idToUse = isNaN(numericId) ? Number((data.id.match(/\d+/)?.[0] || 0)) : numericId;
+        await clientService.update(idToUse, { name: data.name, contacts: data.contacts as any });
+      } else {
+        await clientService.create({ name: data.name, contacts: data.contacts as any });
+      }
+      const refreshed = await clientService.list();
+      const mapped: Client[] = refreshed.map((c: any) => ({
+        id: String(c.id),
+        name: c.name,
+        logoUrl: c.logo_url || '',
+        contacts: Array.isArray(c.contacts) ? c.contacts.map((ct: any) => ({
+          id: String(ct.id),
+          name: ct.name || '-',
+          email: ct.email || '',
+          phone: ct.phone || '',
+          position: ct.position || ''
+        })) : []
+      }));
+      setClients(mapped);
+      handleCloseModal();
+    } catch (e) {
+      alert('Failed to save client');
     }
-    handleCloseModal();
   };
 
   const handleSaveAgreement = (data: any) => {
-    if (data.id) {
-      setAgreements(prevAgreements => prevAgreements.map(agreement => {
-        if (agreement.id === data.id) {
-          return { ...agreement, ...data };
+    (async () => {
+      try {
+        if (data.id) {
+          await subAgreementsService.update(Number(data.id), {
+            name: data.name,
+            amount: Number(data.amount),
+            balance: Number(data.balance ?? data.amount),
+          });
+        } else {
+          await subAgreementsService.create({
+            client_id: Number(data.clientId ?? data.client_id),
+            name: data.name,
+            amount: Number(data.amount),
+            balance: Number(data.balance ?? data.amount),
+            start_date: data.startDate,
+            end_date: data.endDate,
+          });
         }
-        return agreement;
-      }));
-    } 
-    else {
-      const newAgreement: SubAgreement = { 
-        ...data, 
-        id: `sub-${Date.now()}`, 
-        balance: data.amount
-      };
-      setAgreements(prev => [newAgreement, ...prev]);
-    }
-    handleCloseModal();
+        const refreshed = await subAgreementsService.list();
+        const mapped: SubAgreement[] = refreshed.map((s: any) => ({
+          id: String(s.id),
+          clientId: String(s.client_id),
+          name: s.name,
+          amount: Number(s.amount),
+          balance: Number(s.balance),
+          startDate: s.start_date ? String(s.start_date).split('T')[0] : '',
+          endDate: s.end_date ? String(s.end_date).split('T')[0] : '',
+          fileName: s.file_name || undefined,
+        }));
+        setAgreements(mapped);
+        handleCloseModal();
+      } catch (e) {
+        alert('Failed to save sub-agreement');
+      }
+    })();
   };
 
   const handleSaveTicket = (data: Partial<ServiceTicket> & { ticketNumber: string }) => {
@@ -516,45 +653,89 @@ const App: React.FC = () => {
     handleCloseModal();
   };
 
-  const handleSaveJob = (data: Partial<CallOutJob>) => {
-    if (data.id) {
-      setJobs(prevJobs => prevJobs.map(job => 
-        job.id === data.id ? { ...job, ...data } as CallOutJob : job
-      ));
-    } else {
-      const newJob: CallOutJob = { ...(data as Omit<CallOutJob, 'id'>), id: `coj-${Date.now()}`};
-      setJobs(prev => [newJob, ...prev]);
-    }
-    handleCloseModal();
+  const handleSaveJob = (data: Partial<CallOutJob> & { priority?: string; status?: string; description?: string }) => {
+    (async () => {
+      try {
+        if (data.id) {
+          await callOutJobsService.update(Number(data.id), {
+            job_name: data.jobName!,
+            work_order_number: data.workOrderNumber!,
+            start_date: data.startDate,
+            end_date: data.endDate,
+            priority: (data as any).priority,
+            status: (data as any).status,
+            description: (data as any).description,
+          } as any);
+        } else {
+          await callOutJobsService.create({
+            client_id: Number((data as any).clientId),
+            job_name: data.jobName!,
+            work_order_number: data.workOrderNumber!,
+            start_date: data.startDate,
+            end_date: data.endDate,
+            priority: (data as any).priority,
+            status: (data as any).status,
+            description: (data as any).description,
+          } as any);
+        }
+        const refreshed = await callOutJobsService.list();
+        const mapped: CallOutJob[] = refreshed.map((j: any) => ({
+          id: String(j.id),
+          clientId: String(j.client_id),
+          jobName: j.job_name,
+          workOrderNumber: j.work_order_number,
+          startDate: j.start_date ? String(j.start_date).split('T')[0] : '',
+          endDate: j.end_date ? String(j.end_date).split('T')[0] : '',
+          documents: [],
+        }));
+        setJobs(mapped);
+        handleCloseModal();
+      } catch (e) {
+        alert('Failed to save call-out job');
+      }
+    })();
   };
 
   const handleSaveLog = (data: Partial<DailyServiceLog>) => {
-     let savedLog: DailyServiceLog;
-     let shouldGenerateExcel = false;
-
-     if (data.id) { // Editing
-      savedLog = { ...logs.find(l => l.id === data.id)!, ...data } as DailyServiceLog;
-      setLogs(prevLogs => prevLogs.map(log => 
-        log.id === data.id ? savedLog : log
-      ));
-    } else { // Creating
-      savedLog = {
-        id: `dsl-${Date.now()}`,
-        ...(data as Omit<DailyServiceLog, 'id'>), 
-      };
-      setLogs(prev => [savedLog, ...prev]);
-    }
-    
-    // Check if it's a "detailed" log that should have an Excel file generated
-    shouldGenerateExcel = !!(savedLog.personnel?.length || savedLog.equipmentUsed?.length);
-    
-    if (shouldGenerateExcel) {
-        const clientName = clients.find(c => c.id === savedLog.clientId)?.name || 'Unknown Client';
-        const excelHtml = getDslExcelHtml(savedLog, clientName);
-        downloadExcel(excelHtml, `DSL-${savedLog.logNumber.replace(/[\/\\]/g, '-')}`);
-    }
-
-    handleCloseModal();
+    (async () => {
+      try {
+        // Map to backend payload
+        const payload: any = {
+          client_id: Number(data.clientId),
+          field: data.field,
+          well: data.well,
+          contract: data.contract,
+          job_no: data.jobNo || data.logNumber,
+          date: data.date,
+          linked_job_id: data.linkedJobId,
+          personnel: data.personnel?.map((p: any) => ({ name: p.name, position: p.position, hours: p.hours })),
+          equipment_used: data.equipmentUsed?.map((e: any) => ({ name: e.name, hours: e.hours })),
+          almansoori_rep: (data as any).almansooriRep
+            ? [{ name: (data as any).almansooriRep.name, position: (data as any).almansooriRep.position }]
+            : undefined,
+          mog_approval_1: (data as any).mog_approval_1 || ((data as any).mogApproval1
+            ? { name: (data as any).mogApproval1.name }
+            : undefined),
+        };
+        await dailyLogsService.create(payload);
+        const refreshed = await dailyLogsService.list();
+        const mapped: DailyServiceLog[] = refreshed.map((d: any) => ({
+          id: String(d.id),
+          logNumber: d.job_no || '',
+          clientId: String(d.client_id),
+          field: d.field,
+          well: d.well,
+          contract: d.contract,
+          jobNo: d.job_no,
+          date: d.date ? String(d.date).split('T')[0] : '',
+          linkedJobId: d.linked_job_id || undefined,
+        }));
+        setLogs(mapped);
+        handleCloseModal();
+      } catch (e) {
+        alert('Failed to save daily log');
+      }
+    })();
   };
 
   const handleSaveIssue = (data: Omit<TicketIssue, 'id'>) => {
@@ -707,7 +888,42 @@ const App: React.FC = () => {
                  documentCount={combinedDocuments.length}
                />;
       case 'Clients':
-        return <Clients clients={clients} onAdd={() => setModalType('addClient')} onEdit={handleOpenEditClientModal} />;
+        return (
+          <div className="space-y-3">
+            {clientsError && <div className="text-sm text-red-600">{clientsError}</div>}
+            {clientsLoading ? (
+              <div className="text-sm text-slate-600">Loading clients...</div>
+            ) : (
+              <Clients
+                clients={clients}
+                onAdd={() => setModalType('addClient')}
+                onEdit={handleOpenEditClientModal}
+                onDelete={async (client) => {
+                  if (!confirm(`Delete client "${client.name}"?`)) return;
+                  try {
+                    await clientService.remove(Number(client.id));
+                    const refreshed = await clientService.list();
+                    const mapped: Client[] = refreshed.map((c: any) => ({
+                      id: String(c.id),
+                      name: c.name,
+                      logoUrl: c.logo_url || '',
+                      contacts: Array.isArray(c.contacts) ? c.contacts.map((ct: any) => ({
+                        id: String(ct.id),
+                        name: ct.name || '-',
+                        email: ct.email || '',
+                        phone: ct.phone || '',
+                        position: ct.position || ''
+                      })) : []
+                    }));
+                    setClients(mapped);
+                  } catch (e) {
+                    alert('Failed to delete client');
+                  }
+                }}
+              />
+            )}
+          </div>
+        );
       case 'Sub-Agreements':
         return <SubAgreements agreements={agreements} clients={clients} tickets={tickets} onAdd={() => setModalType('addAgreement')} onEdit={handleOpenEditAgreementModal} />;
       case 'Service Tickets':
@@ -735,6 +951,17 @@ const App: React.FC = () => {
   };
   
   const largeModals: (ModalType|null)[] = ['addClient', 'editClient', 'addFullLog', 'editLog', 'generateTicket'];
+
+  if (!user) {
+    if (loading) {
+      return (
+        <div className="flex h-screen items-center justify-center bg-slate-50">
+          <div className="text-slate-600 text-sm">Loading...</div>
+        </div>
+      );
+    }
+    return <Login/>;
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans">

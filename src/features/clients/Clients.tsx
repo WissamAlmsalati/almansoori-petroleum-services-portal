@@ -1,14 +1,14 @@
-
 import React from 'react';
-import { Client } from '../types';
+import { Client } from '../../../types';
 
 interface ClientsProps {
   clients: Client[];
   onAdd: () => void;
   onEdit: (client: Client) => void;
+  onDelete?: (client: Client) => void;
 }
 
-const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit }) => {
+const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit, onDelete }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
@@ -38,8 +38,11 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit }) => {
                 </th>
                 <td className="px-6 py-4">{primaryContact ? primaryContact.name : 'N/A'}</td>
                 <td className="px-6 py-4">{primaryContact ? primaryContact.email : 'N/A'}</td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-6 py-4 text-right space-x-3">
                   <button onClick={() => onEdit(client)} className="font-medium text-brand-blue-600 hover:underline">Edit</button>
+                  {onDelete && (
+                    <button onClick={() => onDelete(client)} className="font-medium text-red-600 hover:underline">Delete</button>
+                  )}
                 </td>
               </tr>
             )})}
@@ -51,3 +54,5 @@ const Clients: React.FC<ClientsProps> = ({ clients, onAdd, onEdit }) => {
 };
 
 export default Clients;
+
+
