@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuthStore } from '../stores';
+import { useAuth } from '../contexts/AuthContext';
 import { useMessages } from '../contexts/MessageContext';
 
 const Login: React.FC = () => {
@@ -8,7 +8,7 @@ const Login: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  const { login, isAuthenticated, isLoading } = useAuthStore();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const { showError, showInfo } = useMessages();
 
   // Redirect if already authenticated
@@ -41,11 +41,15 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      await login(email, password);
-      showInfo('Login successful! Redirecting...', 'Success');
-      // Redirect will happen automatically via useEffect
+      const success = await login(email, password);
+      if (success) {
+        showInfo('Login successful! Redirecting...', 'Success');
+        // Redirect will happen automatically via useEffect
+      } else {
+        showError('Login failed. Please check your credentials.');
+      }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed. Please try again.';
       showError(errorMessage);
     } finally {
       setIsSubmitting(false);

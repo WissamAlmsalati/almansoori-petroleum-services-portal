@@ -1,13 +1,13 @@
 import React from 'react';
 import { MessageProvider } from './src/contexts/MessageContext';
-import { useAuthStore } from './src/stores';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import ToastContainer from './src/components/ToastContainer';
 import Login from './src/components/Login';
 import MainApp from './MainApp';
 
 // App wrapper with authentication
 const AppContent: React.FC = () => {
-    const { user, isLoading } = useAuthStore();
+    const { user, isLoading } = useAuth();
 
     if (isLoading) {
         return (
@@ -28,8 +28,10 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
     return (
         <MessageProvider>
-            <AppContent />
-            <ToastContainer />
+            <AuthProvider>
+                <AppContent />
+                <ToastContainer />
+            </AuthProvider>
         </MessageProvider>
     );
 };
