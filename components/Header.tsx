@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { View } from '../types';
+import { useAuthStore } from '@/features/auth/store';
 
 interface HeaderProps {
   activeView: View;
@@ -20,6 +21,7 @@ const viewDescriptions: Record<View, string> = {
 
 
 const Header: React.FC<HeaderProps> = ({ activeView }) => {
+  const { user, logout } = useAuthStore();
   return (
     <header className="bg-white h-16 flex items-center justify-between px-8 border-b border-slate-200 flex-shrink-0">
       <div>
@@ -35,13 +37,17 @@ const Header: React.FC<HeaderProps> = ({ activeView }) => {
             </span>
         </button>
         <div className="flex items-center gap-2">
-            <img className="h-10 w-10 rounded-full" src="https://picsum.photos/seed/admin/40/40" alt="Admin User" />
+            <img className="h-10 w-10 rounded-full" src="https://picsum.photos/seed/admin/40/40" alt="User" />
             <div>
-                <p className="font-semibold text-slate-700 text-sm">Admin User</p>
-                <p className="text-xs text-slate-500">Administrator</p>
+                <p className="font-semibold text-slate-700 text-sm">{user?.name || 'User'}</p>
+                <p className="text-xs text-slate-500">{Array.isArray(user?.roles) && user?.roles?.length ? user?.roles[0] : 'Authenticated'}</p>
             </div>
-             <button className="text-slate-500 hover:text-slate-700">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+            <button
+              className="ml-2 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-800 px-3 py-1.5 border rounded-md border-slate-200"
+              onClick={() => { logout(); }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4.5A1.5 1.5 0 014.5 3h6A1.5 1.5 0 0112 4.5V7a.5.5 0 01-1 0V4.5a.5.5 0 00-.5-.5h-6a.5.5 0 00-.5.5v11a.5.5 0 00.5.5h6a.5.5 0 00.5-.5V13a.5.5 0 011 0v2.5A1.5 1.5 0 0110.5 17h-6A1.5 1.5 0 013 15.5v-11z" clipRule="evenodd"/><path d="M12.146 10.354a.5.5 0 010-.708l2-2a.5.5 0 11.708.708L13.707 10l1.147 1.146a.5.5 0 11-.708.708l-2-2z"/><path d="M7 10a.5.5 0 01.5-.5h6.793l-.147-.146a.5.5 0 11.708-.708l1.5 1.5a.5.5 0 010 .708l-1.5 1.5a.5.5 0 11-.708-.708l.147-.146H7.5A.5.5 0 017 10z"/></svg>
+              Logout
             </button>
         </div>
       </div>

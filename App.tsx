@@ -20,8 +20,10 @@ import { useAuthStore } from '@/features/auth/store';
 import { clientService } from '@/features/clients/service';
 import { subAgreementsService } from '@/features/subAgreements/service';
 import { dailyLogsService } from '@/features/dailyLogs/service';
+import ticketIssuesService, { TicketIssueCreateRequest } from '@/features/ticketIssues/service';
 
 import { View, Client, SubAgreement, User, ServiceTicket, TicketIssue, CallOutJob, DailyServiceLog, ContactPerson, PersonnelLogItem, EquipmentLogItem, CombinedDocument } from './types';
+import serviceTicketService, { ServiceTicketCreateRequest } from '@/features/serviceTickets/service';
 import { 
     DUMMY_SUB_AGREEMENTS, DUMMY_USERS, DUMMY_SERVICE_TICKETS, 
     DUMMY_CALL_OUT_JOBS, DUMMY_SERVICE_LOGS, DUMMY_TICKET_ISSUES
@@ -334,6 +336,19 @@ const App: React.FC = () => {
   }, [token, user]);
 
   useEffect(() => {
+    const fetchServiceTickets = async () => {
+      if (!user) return;
+      try {
+        const { items } = await serviceTicketService.list(1);
+        setTickets(items as unknown as ServiceTicket[]);
+      } catch (e) {
+        // keep existing state
+      }
+    };
+    fetchServiceTickets();
+  }, [user]);
+
+  useEffect(() => {
     const fetchClients = async () => {
       if (!user) return;
       setClientsLoading(true);
@@ -432,16 +447,29 @@ const App: React.FC = () => {
     fetchDailyLogs();
   }, [user]);
   
+  useEffect(() => {
+    const fetchTicketIssues = async () => {
+      if (!user) return;
+      try {
+        const { items } = await ticketIssuesService.list(1);
+        setIssues(items as unknown as TicketIssue[]);
+      } catch (e) {
+        // keep existing
+      }
+    };
+    fetchTicketIssues();
+  }, [user]);
+  
   // State for all data types
   const [clients, setClients] = useState<Client[]>([]);
   const [clientsLoading, setClientsLoading] = useState<boolean>(false);
   const [clientsError, setClientsError] = useState<string | null>(null);
   const [agreements, setAgreements] = useState<SubAgreement[]>(DUMMY_SUB_AGREEMENTS);
   const [users, setUsers] = useState<User[]>(DUMMY_USERS);
-  const [tickets, setTickets] = useState<ServiceTicket[]>(DUMMY_SERVICE_TICKETS);
+  const [tickets, setTickets] = useState<ServiceTicket[]>([]);
   const [jobs, setJobs] = useState<CallOutJob[]>(DUMMY_CALL_OUT_JOBS);
   const [logs, setLogs] = useState<DailyServiceLog[]>(DUMMY_SERVICE_LOGS);
-  const [issues, setIssues] = useState<TicketIssue[]>(DUMMY_TICKET_ISSUES);
+  const [issues, setIssues] = useState<TicketIssue[]>([]);
 
   const [modalType, setModalType] = useState<ModalType>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -613,17 +641,27 @@ const App: React.FC = () => {
     } 
     // CREATE
     else {
-        const newTicket: ServiceTicket = { 
-            ...(data as Omit<ServiceTicket, 'id'>), 
-            id: `st-${Date.now()}` 
-        };
-        setTickets(prev => [newTicket, ...prev]);
-        
-        if(newTicket.subAgreementId) {
-            setAgreements(prev => prev.map(agg => agg.id === newTicket.subAgreementId ? {...agg, balance: agg.balance - newTicket.amount} : agg));
-        }
+        (async () => {
+          try {
+            const payload: ServiceTicketCreateRequest = {
+              client_id: Number(data.clientId),
+              sub_agreement_id: data.subAgreementId ? Number(data.subAgreementId) : null,
+              call_out_job_id: data.callOutJobId ? Number(data.callOutJobId) : null,
+              date: data.date!,
+              status: data.status || 'In Field to Sign',
+              amount: Number(data.amount || 0),
+              related_log_ids: (data.relatedLogIds || []).map(id => Number(id)),
+              documents: [],
+            };
+            await serviceTicketService.create(payload);
+            const { items } = await serviceTicketService.list(1);
+            setTickets(items as unknown as ServiceTicket[]);
+            handleCloseModal();
+          } catch (e) {
+            alert('Failed to save service ticket');
+          }
+        })();
     }
-    handleCloseModal();
   };
 
   const handleSaveGeneratedTicket = (data: any) => {
@@ -739,9 +777,23 @@ const App: React.FC = () => {
   };
 
   const handleSaveIssue = (data: Omit<TicketIssue, 'id'>) => {
-    const newIssue: TicketIssue = { ...data, id: `iss-${Date.now()}`};
-    setIssues(prev => [newIssue, ...prev]);
-    handleCloseModal();
+    (async () => {
+      try {
+        const payload: TicketIssueCreateRequest = {
+          ticket_id: Number(data.ticketId),
+          description: data.description,
+          status: data.status,
+          remarks: data.remarks,
+          date_reported: data.dateReported,
+        };
+        await ticketIssuesService.create(payload);
+        const { items } = await ticketIssuesService.list(1);
+        setIssues(items as unknown as TicketIssue[]);
+        handleCloseModal();
+      } catch (e) {
+        alert('Failed to save ticket issue');
+      }
+    })();
   };
 
   // --- DERIVED DATA FOR CHILD COMPONENTS ---

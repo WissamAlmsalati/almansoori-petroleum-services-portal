@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { z } from 'zod';
 import { useAuthStore } from './store';
 
-const inputClass = "w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
-const buttonClass = "w-full bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 text-sm disabled:opacity-60";
-
 const schema = z.object({
     email: z.string().email('Please enter a valid email'),
     password: z.string().min(1, 'Password is required')
@@ -39,23 +36,81 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <div className="w-full max-w-sm bg-white shadow rounded p-6">
-                <h1 className="text-lg font-semibold mb-4 text-slate-900">Sign in</h1>
-                <form onSubmit={onSubmit} className="space-y-3">
-                    <div>
-                        <label className="block text-sm mb-1 text-slate-700">Email</label>
-                        <input className={inputClass} type="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!fieldErrors.email} />
-                        {fieldErrors.email && <div className="mt-1 text-xs text-red-600">{fieldErrors.email}</div>}
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 flex items-center justify-center px-4">
+            <div className="w-full max-w-md">
+                <div className="relative mb-6 flex items-center justify-center">
+                    <div className="h-14 w-14 rounded-2xl bg-white/70 backdrop-blur border border-slate-200 shadow-sm flex items-center justify-center animate-pulse">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-6 w-6 text-brand-blue-600">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2" />
+                        </svg>
                     </div>
-                    <div>
-                        <label className="block text-sm mb-1 text-slate-700">Password</label>
-                        <input className={inputClass} type="password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={!!fieldErrors.password} />
-                        {fieldErrors.password && <div className="mt-1 text-xs text-red-600">{fieldErrors.password}</div>}
+                </div>
+
+                <div className="group bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <div className="p-6 sm:p-8">
+                        <div className="mb-6">
+                            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Welcome back</h1>
+                            <p className="mt-1 text-sm text-slate-500">Sign in to continue to your dashboard</p>
+                        </div>
+
+                        <form onSubmit={onSubmit} className="space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="block text-sm font-medium text-slate-700">Email</label>
+                                <input
+                                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs outline-none transition focus:border-brand-blue-500 focus:ring-2 focus:ring-brand-blue-200"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    aria-invalid={!!fieldErrors.email}
+                                    placeholder="you@example.com"
+                                />
+                                {fieldErrors.email && <div className="mt-1 text-xs text-red-600">{fieldErrors.email}</div>}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="block text-sm font-medium text-slate-700">Password</label>
+                                <input
+                                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs outline-none transition focus:border-brand-blue-500 focus:ring-2 focus:ring-brand-blue-200"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    aria-invalid={!!fieldErrors.password}
+                                    placeholder="••••••••"
+                                />
+                                {fieldErrors.password && <div className="mt-1 text-xs text-red-600">{fieldErrors.password}</div>}
+                            </div>
+
+                            {error && (
+                                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                className="relative inline-flex w-full items-center justify-center rounded-md bg-brand-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-blue-700 focus:outline-none focus:ring-2 focus:ring-brand-blue-300 disabled:opacity-60"
+                                type="submit"
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                        </svg>
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    <>Sign in</>
+                                )}
+                            </button>
+
+                            <div className="flex items-center justify-between pt-1">
+                                <a className="text-xs text-slate-500 hover:text-slate-700 transition" href="#">Forgot password?</a>
+                                <span className="text-xs text-slate-400">v1.0</span>
+                            </div>
+                        </form>
                     </div>
-                    {error && <div className="text-sm text-red-600" role="alert">{error}</div>}
-                    <button className={buttonClass} type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
-                </form>
+                </div>
             </div>
         </div>
     );

@@ -35,7 +35,6 @@ const TicketIssues: React.FC<TicketIssuesProps> = ({ issues, tickets, onAdd }) =
               <th scope="col" className="px-6 py-3">Description</th>
               <th scope="col" className="px-6 py-3">Date Reported</th>
               <th scope="col" className="px-6 py-3">Status</th>
-              <th scope="col" className="px-6 py-3"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -51,9 +50,6 @@ const TicketIssues: React.FC<TicketIssuesProps> = ({ issues, tickets, onAdd }) =
                   <span className={`text-xs font-medium mr-2 px-2.5 py-0.5 rounded ${getStatusColor(issue.status)}`}>
                     {issue.status}
                   </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <a href="#" className="font-medium text-brand-blue-600 hover:underline">Edit</a>
                 </td>
               </tr>
             ))}
