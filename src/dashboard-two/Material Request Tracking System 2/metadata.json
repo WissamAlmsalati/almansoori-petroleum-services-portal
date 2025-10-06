@@ -1,0 +1,5 @@
+{
+  "name": "Material Request & Tracking System",
+  "description": "A modern, user-friendly conversational system that allows field staff to submit material requests, coordinators to classify and process them, and supply chain to track PRs, POs, and deliveries — all with full status tracking, searching, and notifications.",
+  "requestFramePermissions": []
+}

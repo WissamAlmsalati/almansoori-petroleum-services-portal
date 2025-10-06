@@ -3,11 +3,14 @@ import { MessageProvider } from './src/contexts/MessageContext';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import ToastContainer from './src/components/ToastContainer';
 import Login from './src/components/Login';
-import MainApp from './MainApp';
+import DashboardOne from './src/components/DashboardOne';
+import DashboardTwo from './src/components/DashboardTwo';
+import DashboardThree from './src/components/DashboardThree';
+import DashboardFour from './src/components/DashboardFour';
 
 // App wrapper with authentication
 const AppContent: React.FC = () => {
-    const { user, isLoading } = useAuth();
+    const { user, selectedDashboard, isLoading } = useAuth();
 
     if (isLoading) {
         return (
@@ -21,7 +24,20 @@ const AppContent: React.FC = () => {
         return <Login />;
     }
 
-    return <MainApp />;
+    // Render the selected dashboard
+    if (selectedDashboard === 'dashboard-two') {
+        return <DashboardTwo />;
+    }
+    
+    if (selectedDashboard === 'dashboard-three') {
+        return <DashboardThree />;
+    }
+    
+    if (selectedDashboard === 'dashboard-four') {
+        return <DashboardFour />;
+    }
+
+    return <DashboardOne />;
 };
 
 // Main App with providers

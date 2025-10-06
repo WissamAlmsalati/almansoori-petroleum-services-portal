@@ -1,0 +1,5 @@
+{
+  "name": "Supplier Accrual & Reconciliation System",
+  "description": "A modern, user-friendly UI to manage supplier accruals and invoice reconciliation. The system allows managing suppliers, services, and price lists; submitting daily service records; generating monthly accrual reports; and reconciling supplier invoices against internal records.",
+  "requestFramePermissions": []
+}

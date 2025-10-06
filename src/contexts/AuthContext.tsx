@@ -3,9 +3,10 @@ import authService, { User } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
+  selectedDashboard: 'dashboard-one' | 'dashboard-two' | 'dashboard-three' | 'dashboard-four' | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, dashboard?: 'dashboard-one' | 'dashboard-two' | 'dashboard-three' | 'dashboard-four') => Promise<boolean>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -26,6 +27,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [selectedDashboard, setSelectedDashboard] = useState<'dashboard-one' | 'dashboard-two' | 'dashboard-three' | 'dashboard-four' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is authenticated on app startup
@@ -44,21 +46,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (authService.isAuthenticated()) {
         // Get stored user data
         const storedUser = authService.getUser();
+        const storedDashboard = localStorage.getItem('selectedDashboard') as 'dashboard-one' | 'dashboard-two' | 'dashboard-three' | 'dashboard-four' | null;
+        
         if (storedUser) {
           setUser(storedUser);
+          setSelectedDashboard(storedDashboard || 'dashboard-one');
         } else {
           // Try to get current user from API
           const currentUser = await authService.getCurrentUser();
           if (currentUser) {
             setUser(currentUser);
+            setSelectedDashboard(storedDashboard || 'dashboard-one');
           } else {
             // Invalid token, logout
             authService.logout();
+            localStorage.removeItem('selectedDashboard');
             setUser(null);
+            setSelectedDashboard(null);
           }
         }
       } else {
         setUser(null);
+        setSelectedDashboard(null);
       }
     } catch (error) {
       console.error('Auth check error:', error);
@@ -69,7 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, dashboard: 'dashboard-one' | 'dashboard-two' | 'dashboard-three' | 'dashboard-four' = 'dashboard-one'): Promise<boolean> => {
     try {
       setIsLoading(true);
       
@@ -77,6 +86,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.success && response.data) {
         setUser(response.data.user);
+        setSelectedDashboard(dashboard);
+        localStorage.setItem('selectedDashboard', dashboard);
         return true;
       } else {
         return false;
@@ -91,11 +102,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     authService.logout();
+    localStorage.removeItem('selectedDashboard');
     setUser(null);
+    setSelectedDashboard(null);
   };
 
   const value: AuthContextType = {
     user,
+    selectedDashboard,
     isAuthenticated: !!user,
     isLoading,
     login,
