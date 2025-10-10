@@ -5,7 +5,6 @@ import { useMessages } from '../contexts/MessageContext';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedDashboard, setSelectedDashboard] = useState<'dashboard-one' | 'dashboard-two' | 'dashboard-three' | 'dashboard-four'>('dashboard-one');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
@@ -42,7 +41,7 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const success = await login(email, password, selectedDashboard);
+      const success = await login(email, password, 'dashboard-one');
       if (success) {
         showInfo('Login successful! Redirecting...', 'Success');
         // Redirect will happen automatically via useEffect
@@ -168,126 +167,6 @@ const Login: React.FC = () => {
                       )}
                     </svg>
                   </button>
-                </div>
-              </div>
-
-              {/* Dashboard Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Choose Dashboard
-                </label>
-                <div className="grid grid-cols-1 gap-3">
-                  <div 
-                    className={`relative cursor-pointer rounded-lg border p-4 transition-all ${
-                      selectedDashboard === 'dashboard-one' 
-                        ? 'border-brand-blue-500 bg-brand-blue-50 ring-2 ring-brand-blue-500' 
-                        : 'border-gray-300 bg-white hover:border-gray-400'
-                    }`}
-                    onClick={() => setSelectedDashboard('dashboard-one')}
-                  >
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        name="dashboard"
-                        value="dashboard-one"
-                        checked={selectedDashboard === 'dashboard-one'}
-                        onChange={() => setSelectedDashboard('dashboard-one')}
-                        className="h-4 w-4 text-brand-blue-600 focus:ring-brand-blue-500 border-gray-300"
-                      />
-                      <div className="ml-3">
-                        <div className="text-sm font-medium text-gray-900">
-                          Main Dashboard
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Complete service management portal with all features
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div 
-                    className={`relative cursor-pointer rounded-lg border p-4 transition-all ${
-                      selectedDashboard === 'dashboard-two' 
-                        ? 'border-brand-blue-500 bg-brand-blue-50 ring-2 ring-brand-blue-500' 
-                        : 'border-gray-300 bg-white hover:border-gray-400'
-                    }`}
-                    onClick={() => setSelectedDashboard('dashboard-two')}
-                  >
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        name="dashboard"
-                        value="dashboard-two"
-                        checked={selectedDashboard === 'dashboard-two'}
-                        onChange={() => setSelectedDashboard('dashboard-two')}
-                        className="h-4 w-4 text-brand-blue-600 focus:ring-brand-blue-500 border-gray-300"
-                      />
-                      <div className="ml-3">
-                        <div className="text-sm font-medium text-gray-900">
-                          Material Request Dashboard
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Specialized dashboard for material request tracking
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div 
-                    className={`relative cursor-pointer rounded-lg border p-4 transition-all ${
-                      selectedDashboard === 'dashboard-three' 
-                        ? 'border-brand-blue-500 bg-brand-blue-50 ring-2 ring-brand-blue-500' 
-                        : 'border-gray-300 bg-white hover:border-gray-400'
-                    }`}
-                    onClick={() => setSelectedDashboard('dashboard-three')}
-                  >
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        name="dashboard"
-                        value="dashboard-three"
-                        checked={selectedDashboard === 'dashboard-three'}
-                        onChange={() => setSelectedDashboard('dashboard-three')}
-                        className="h-4 w-4 text-brand-blue-600 focus:ring-brand-blue-500 border-gray-300"
-                      />
-                      <div className="ml-3">
-                        <div className="text-sm font-medium text-gray-900">
-                          Supplier Accrual Dashboard
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Reconciliation system for supplier accruals and invoices
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div 
-                    className={`relative cursor-pointer rounded-lg border p-4 transition-all ${
-                      selectedDashboard === 'dashboard-four' 
-                        ? 'border-brand-blue-500 bg-brand-blue-50 ring-2 ring-brand-blue-500' 
-                        : 'border-gray-300 bg-white hover:border-gray-400'
-                    }`}
-                    onClick={() => setSelectedDashboard('dashboard-four')}
-                  >
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        name="dashboard"
-                        value="dashboard-four"
-                        checked={selectedDashboard === 'dashboard-four'}
-                        onChange={() => setSelectedDashboard('dashboard-four')}
-                        className="h-4 w-4 text-brand-blue-600 focus:ring-brand-blue-500 border-gray-300"
-                      />
-                      <div className="ml-3">
-                        <div className="text-sm font-medium text-gray-900">
-                          Oil Fields Management
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Comprehensive employee and field operations management
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
